@@ -1,0 +1,292 @@
+#ifndef ITERATOR_
+#define ITERATOR_
+
+#include <stddef.h>
+
+#include <type_traits>
+
+namespace std {
+
+struct input_iterator_tag {};
+struct output_iterator_tag {};
+struct forward_iterator_tag : public input_iterator_tag {};
+struct bidirectional_iterator_tag : public forward_iterator_tag {};
+struct random_access_iterator_tag : public bidirectional_iterator_tag {};
+
+template <class Iterator>
+struct iterator_traits {
+  typedef typename Iterator::iterator_category iterator_category;
+  typedef typename Iterator::value_type value_type;
+  typedef typename Iterator::difference_type difference_type;
+  typedef typename Iterator::pointer pointer;
+  typedef typename Iterator::reference reference;
+};
+
+template <class T>
+struct iterator_traits<T*> {
+  typedef random_access_iterator_tag iterator_category;
+  typedef T value_type;
+  typedef ptrdiff_t difference_type;
+  typedef T* pointer;
+  typedef T& reference;
+};
+
+namespace detail {
+
+template <class It>
+constexpr  // required since C++17
+    void
+    do_advance(It& it, typename std::iterator_traits<It>::difference_type n,
+               std::input_iterator_tag) {
+  while (n > 0) {
+    --n;
+    ++it;
+  }
+}
+
+template <class It>
+constexpr  // required since C++17
+    void
+    do_advance(It& it, typename std::iterator_traits<It>::difference_type n,
+               std::bidirectional_iterator_tag) {
+  while (n > 0) {
+    --n;
+    ++it;
+  }
+  while (n < 0) {
+    ++n;
+    --it;
+  }
+}
+
+template <class It>
+constexpr  // required since C++17
+    void
+    do_advance(It& it, typename std::iterator_traits<It>::difference_type n,
+               std::random_access_iterator_tag) {
+  it += n;
+}
+
+template <class It>
+constexpr  // required since C++17
+    typename std::iterator_traits<It>::difference_type
+    do_distance(It first, It last, std::input_iterator_tag) {
+  typename std::iterator_traits<It>::difference_type result = 0;
+  while (first != last) {
+    ++first;
+    ++result;
+  }
+  return result;
+}
+
+template <class It>
+constexpr  // required since C++17
+    typename std::iterator_traits<It>::difference_type
+    do_distance(It first, It last, std::random_access_iterator_tag) {
+  return last - first;
+}
+
+}  // namespace detail
+
+template <class It, class Distance>
+constexpr  // since C++17
+    void
+    advance(It& it, Distance n) {
+  detail::do_advance(it, typename std::iterator_traits<It>::difference_type(n),
+                     typename std::iterator_traits<It>::iterator_category());
+}
+
+template <class BidirIt>
+constexpr  // since C++17
+    BidirIt
+    prev(BidirIt it,
+         typename std::iterator_traits<BidirIt>::difference_type n = 1) {
+  std::advance(it, -n);
+  return it;
+}
+
+template <typename Itr>
+class reverse_iterator {
+  Itr itr;
+
+ public:
+  constexpr reverse_iterator() : itr() {}
+  constexpr explicit reverse_iterator(Itr itr) : itr(itr) {}
+  constexpr auto& operator*() {
+    return *std::prev(itr);  // <== returns the content of prev
+  }
+  constexpr auto& operator++() {
+    --itr;
+    return *this;
+  }
+  constexpr friend bool operator!=(reverse_iterator<Itr> a,
+                                   reverse_iterator<Itr> b) {
+    return a.itr != b.itr;
+  }
+
+  using value_type = typename iterator_traits<Itr>::value_type;
+  using difference_type = typename iterator_traits<Itr>::difference_type;
+  using reference = typename iterator_traits<Itr>::reference;
+  using iterator_category = typename iterator_traits<Itr>::iterator_category;
+  using pointer = typename iterator_traits<Itr>::pointer;
+
+  Itr base() const { return itr; }
+
+  reverse_iterator operator-(difference_type __n) const {
+    return reverse_iterator(itr + __n);
+  }
+  reverse_iterator& operator+=(difference_type __n) {
+    itr -= __n;
+    return *this;
+  }
+};
+
+template <class _Iter1, class _Iter2>
+inline typename reverse_iterator<_Iter1>::difference_type operator-(
+    const reverse_iterator<_Iter1>& __x, const reverse_iterator<_Iter2>& __y) {
+  return __y.base() - __x.base();
+}
+
+template <class Iter>
+constexpr std::reverse_iterator<Iter> make_reverse_iterator(Iter i) {
+  return std::reverse_iterator<Iter>(i);
+}
+
+template <class It>
+constexpr  // since C++17
+    typename std::iterator_traits<It>::difference_type
+    distance(It first, It last) {
+  return detail::do_distance(
+      first, last, typename std::iterator_traits<It>::iterator_category());
+}
+
+template <class InputIt>
+constexpr  // since C++17
+    InputIt
+    next(InputIt it,
+         typename std::iterator_traits<InputIt>::difference_type n = 1) {
+  std::advance(it, n);
+  return it;
+}
+
+template <class _Iter>
+class iterator {
+ public:
+  typedef _Iter iterator_type;
+  typedef typename iterator_traits<iterator_type>::value_type value_type;
+  typedef
+      typename iterator_traits<iterator_type>::difference_type difference_type;
+  typedef typename iterator_traits<iterator_type>::pointer pointer;
+  typedef typename iterator_traits<iterator_type>::reference reference;
+  typedef typename iterator_traits<iterator_type>::iterator_category
+      iterator_category;
+
+ private:
+  iterator_type __i;
+
+ public:
+  constexpr iterator() : __i() {}
+  template <class _Up>
+  constexpr iterator(
+      const iterator<_Up>& __u,
+      typename enable_if<is_convertible<_Up, iterator_type>::value>::type* =
+          nullptr)
+      : __i(__u.base()) {}
+  constexpr reference operator*() const { return *__i; }
+  constexpr pointer operator->() const { return __i; }
+  constexpr iterator& operator++() {
+    ++__i;
+    return *this;
+  }
+  constexpr iterator operator++(int) {
+    iterator __tmp(*this);
+    ++(*this);
+    return __tmp;
+  }
+
+  constexpr iterator& operator--() {
+    --__i;
+    return *this;
+  }
+  constexpr iterator operator--(int) {
+    iterator __tmp(*this);
+    --(*this);
+    return __tmp;
+  }
+  constexpr iterator operator+(difference_type __n) const {
+    iterator __w(*this);
+    __w += __n;
+    return __w;
+  }
+  constexpr iterator& operator+=(difference_type __n) {
+    __i += __n;
+    return *this;
+  }
+  constexpr iterator operator-(difference_type __n) const {
+    return *this + (-__n);
+  }
+  constexpr iterator& operator-=(difference_type __n) {
+    *this += -__n;
+    return *this;
+  }
+  constexpr reference operator[](difference_type __n) const { return __i[__n]; }
+
+  constexpr iterator_type base() const { return __i; }
+
+  constexpr explicit iterator(iterator_type __x) : __i(__x) {}
+
+  constexpr bool operator!=(iterator<_Iter> other) const {
+    return this->__i != other.__i;
+  }
+
+  constexpr bool operator==(iterator<_Iter> other) const {
+    return this->__i == other.__i;
+  }
+};
+
+template <class _Iter1>
+constexpr bool operator<(const iterator<_Iter1>& __x,
+                         const iterator<_Iter1>& __y) {
+  return __x.base() < __y.base();
+}
+
+template <class _Iter1, class _Iter2>
+constexpr bool operator<(const iterator<_Iter1>& __x,
+                         const iterator<_Iter2>& __y) {
+  return __x.base() < __y.base();
+}
+
+template <class _Iter1>
+constexpr bool operator>(const iterator<_Iter1>& __x,
+                         const iterator<_Iter1>& __y) {
+  return __x.base() > __y.base();
+}
+
+template <class _Iter1, class _Iter2>
+constexpr bool operator>(const iterator<_Iter1>& __x,
+                         const iterator<_Iter2>& __y) {
+  return __x.base() > __y.base();
+}
+
+template <class _Iter1>
+constexpr bool operator<=(const iterator<_Iter1>& __x,
+                          const iterator<_Iter1>& __y) {
+  return __x.base() <= __y.base();
+}
+
+template <class _Iter1, class _Iter2>
+constexpr bool operator<=(const iterator<_Iter1>& __x,
+                          const iterator<_Iter2>& __y) {
+  return __x.base() <= __y.base();
+}
+
+template <class _Iter1, class _Iter2>
+constexpr auto operator-(const iterator<_Iter1>& __x,
+                         const iterator<_Iter2>& __y)
+    -> decltype(__x.base() - __y.base()) {
+  return __x.base() - __y.base();
+}
+
+}  // namespace std
+
+#endif  // ITERATOR_

@@ -1,0 +1,1084 @@
+qemu-system-i386: multiboot knows VBE. we don't
+c[?7l[2J[0mSeaBIOS (version 1.15.0-1)
+
+
+iPXE (http://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+07F8F340+07ECF340 CA00
+Press Ctrl-B to configure iPXE (PCI 00:03.0)...                                                                               
+
+
+Booting from ROM..
+flags = 0x0000024f
+mem_lower = 639KB, mem_upper = 129920KB
+boot_device = 0x8000ffff
+cmdline = kernel/kernel.debug 
+mods_count = 1, mods_addr = 0x00418000
+ mod_start = 0x00419000, mod_end = 0x00447014, cmdline = userboot/userboot.img
+mmaps:
+ size = 0x00000014, base_addr = 0x0000000000000000, length = 0x000000000009fc00, type = 0x00000001
+ size = 0x00000014, base_addr = 0x000000000009fc00, length = 0x0000000000000400, type = 0x00000002
+ size = 0x00000014, base_addr = 0x00000000000f0000, length = 0x0000000000010000, type = 0x00000002
+ size = 0x00000014, base_addr = 0x0000000000100000, length = 0x0000000007ee0000, type = 0x00000001
+ size = 0x00000014, base_addr = 0x0000000007fe0000, length = 0x0000000000020000, type = 0x00000002
+ size = 0x00000014, base_addr = 0x00000000fffc0000, length = 0x0000000000040000, type = 0x00000002
+Kernel is 93 KB large (physical range: 0x00400000 - 0x004174b8)
+Num available pages: 29
+Physical 4M pages:
+  0x00000003
+  0x00000000
+  0x00000000
+  0x00000080
+Init cr0: 0x80000011
+Init cr4: 0x00000010
+heap init?
+Running kernel tests
+Running `::libc::tests::TestBasicMalloc` ... Passed
+Running `TestMultipleMallocs` ... Passed
+Running `TestVirtualMapping` ... Passed
+All passed!
+Initrd start: 0x00419000
+Initrd end (inclusive): 0x00447014
+userboot entry: 0x00c00000
+initial user task: 0x0080246c
+SCHED START
+0x01402ff8[0]: 0x00000000
+0x01402ffc[1]: 0x00000000
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c00087 maps
+jumping from current task 0x00800004 @0x0040c775
+SWITCH to 0x0080246c
+jumping to 0x00c00000
+jumped from 0x00c0000e in task 0x0080246c
+AllocPage vaddr 0x01000000 => paddr 0x00c00000
+ALLOC PAGE
+0x01402ff8[0]: 0x00000000
+0x01402ffc[1]: 0x00000000
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+jumped from 0x00c0001a in task 0x0080246c
+PageSize
+0x01402ff8[0]: 0x00000000
+0x01402ffc[1]: 0x00000000
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000a7 maps
+4) 0x00c00087 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+SCHED START
+0x01402ff8[0]: 0x00000000
+0x01402ffc[1]: 0x00000000
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000a7 maps
+4) 0x00c00087 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumping from current task 0x0080246c @0x00c0001a
+SWITCH to 0x00800004
+jumping to 0x0040c775
+SCHED START
+0x01402ff8[0]: 0x00000000
+0x01402ffc[1]: 0x00000000
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000a7 maps
+4) 0x00c00087 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x0080246c
+jumping to 0x00c0001a
+jumped from 0x00c001d8 in task 0x0080246c
+AllocPage vaddr 0x01400000 => paddr 0x01000000
+ALLOC PAGE
+0x01402ff8[0]: 0x00000000
+0x01402ffc[1]: 0x00000000
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+__libc_start_main: 0x00000030
+jumped from 0x00c001fb in task 0x0080246c
+PageSize
+0x01402ff8[0]: 0x00000000
+0x01402ffc[1]: 0x00000000
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000a7 maps
+4) 0x00c000e7 maps
+5) 0x01000087 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+Malloc page: 0x01400000
+pagesize: 0x00400000
+heap init?
+=== Userboot Stage 1 ===
+DEBUG_PRINT> start: 0x00c00000
+DEBUG_PRINT> end: 0x00c06014
+DEBUG_PRINT> size: 24596 bytes
+DEBUG_PRINT> stack loc: 0x013fffac
+DEBUG_PRINT> dir: ./
+DEBUG_PRINT> dir: ./tests/
+DEBUG_PRINT> file: ./tests/test-malloc
+DEBUG_PRINT> file: ./test-hello
+DEBUG_PRINT> file: ./userboot-stage2
+DEBUG_PRINT> Attempting to run ./test-hello. Allocating page for executable.
+jumped from 0x00c001d8 in task 0x0080246c
+AllocPage vaddr 0x01800000 => paddr 0x01400000
+ALLOC PAGE
+0x01402ff8[0]: 0x00000000
+0x01402ffc[1]: 0x00000000
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+DEBUG_PRINT> ELF module location: 0x00c13414
+DEBUG_PRINT> load address: 0x01800000
+DEBUG_PRINT> program type: 3
+DEBUG_PRINT> program entry point (offset): 0x00002a24
+DEBUG_PRINT> LOAD segment Offset: 00000000, VirtAddr: 0x00000000, filesz: 0x00000ca8, memsz: 0x00000ca8
+DEBUG_PRINT> LOAD segment Offset: 00000cb0, VirtAddr: 0x00001cb0, filesz: 0x00002908, memsz: 0x00002908
+DEBUG_PRINT> LOAD segment Offset: 000035b8, VirtAddr: 0x000055b8, filesz: 0x00000064, memsz: 0x00000064
+DEBUG_PRINT> LOAD segment Offset: 0000361c, VirtAddr: 0x0000661c, filesz: 0x0000000c, memsz: 0x00000014
+DEBUG_PRINT> String table size: 0x00000001
+reloc R_386_RELATIVE: 0x01805618 = 0x01802a60
+jumped from 0x00c00227 in task 0x0080246c
+DEBUG_PRINT> new process handle: 0x008028d0
+jumped from 0x00c0026f in task 0x0080246c
+Mapped vaddr 0x01800000 => paddr 0x01400000 in task 0x008028d0
+  Originally mapped from vaddr 0x01800000 in task 0x0080246c
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Map2
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+new_load_addr: 0x01800000
+jumped from 0x00c002c1 in task 0x0080246c
+Unmapped vaddr 0x01800000 (paddr 0x01400000) in task 0x0080246c (owner: 0)
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+jumped from 0x00c001d8 in task 0x0080246c
+AllocPage vaddr 0x01800000 => paddr 0x01800000
+ALLOC PAGE
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+jumped from 0x00c0026f in task 0x0080246c
+Mapped vaddr 0x00c00000 => paddr 0x01800000 in task 0x008028d0
+  Originally mapped from vaddr 0x01800000 in task 0x0080246c
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Map2
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+start CreateParams (this_argv_page: 0x01800000)
+jumped from 0x00c001fb in task 0x0080246c
+PageSize
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x01800087 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+a, load_addr:0x01800000
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x018000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumping from current task 0x0080246c @0x00c00b23
+SWITCH to 0x00800004
+jumping to 0x00404c1c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x018000e7 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x0080246c
+jumping to 0x00c00b23
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x018000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumping from current task 0x0080246c @0x00c00b37
+SWITCH to 0x00800004
+jumping to 0x00404c1c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x018000e7 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x0080246c
+jumping to 0x00c00b37
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x018000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumping from current task 0x0080246c @0x00c00b23
+SWITCH to 0x00800004
+jumping to 0x00404c1c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x018000e7 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x0080246c
+jumping to 0x00c00b23
+b
+argv_dst: 0x01800004
+strs_dst: 0x0180000c
+end CreateParams
+jumped from 0x00c002c1 in task 0x0080246c
+Unmapped vaddr 0x01800000 (paddr 0x01800000) in task 0x0080246c (owner: 0)
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+DEBUG_PRINT> argv_page map: 0x01800000 => 0x00c00000
+jumped from 0x00c002ad in task 0x0080246c
+DEBUG_PRINT> waiting to start process 0x008028d0.
+DEBUG_PRINT> dir: ./
+DEBUG_PRINT> dir: ./tests/
+DEBUG_PRINT> file: ./tests/test-malloc
+DEBUG_PRINT> file: ./test-hello
+DEBUG_PRINT> file: ./userboot-stage2
+DEBUG_PRINT> Attempting to run ./userboot-stage2. Allocating page for executable.
+jumped from 0x00c001d8 in task 0x0080246c
+AllocPage vaddr 0x01800000 => paddr 0x01c00000
+ALLOC PAGE
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+DEBUG_PRINT> ELF module location: 0x00c1e014
+DEBUG_PRINT> load address: 0x01800000
+DEBUG_PRINT> program type: 3
+DEBUG_PRINT> program entry point (offset): 0x000063a8
+DEBUG_PRINT> LOAD segment Offset: 00000000, VirtAddr: 0x00000000, filesz: 0x0000178c, memsz: 0x0000178c
+DEBUG_PRINT> LOAD segment Offset: 00001790, VirtAddr: 0x00002790, filesz: 0x00003dc2, memsz: 0x00003dc2
+DEBUG_PRINT> LOAD segment Offset: 00005554, VirtAddr: 0x00007554, filesz: 0x00000064, memsz: 0x00000064
+DEBUG_PRINT> LOAD segment Offset: 000055b8, VirtAddr: 0x000085b8, filesz: 0x0000000c, memsz: 0x00000014
+DEBUG_PRINT> String table size: 0x00000001
+reloc R_386_RELATIVE: 0x018075b4 = 0x018063e0
+jumped from 0x00c00227 in task 0x0080246c
+DEBUG_PRINT> new process handle: 0x00806008
+jumped from 0x00c0026f in task 0x0080246c
+Mapped vaddr 0x01800000 => paddr 0x01c00000 in task 0x00806008
+  Originally mapped from vaddr 0x01800000 in task 0x0080246c
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Map2
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+new_load_addr: 0x01800000
+jumped from 0x00c002c1 in task 0x0080246c
+Unmapped vaddr 0x01800000 (paddr 0x01c00000) in task 0x0080246c (owner: 0)
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+jumped from 0x00c001d8 in task 0x0080246c
+AllocPage vaddr 0x01800000 => paddr 0x02000000
+ALLOC PAGE
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+jumped from 0x00c0026f in task 0x0080246c
+Mapped vaddr 0x00c00000 => paddr 0x02000000 in task 0x00806008
+  Originally mapped from vaddr 0x01800000 in task 0x0080246c
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Map2
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+start CreateParams (this_argv_page: 0x01800000)
+jumped from 0x00c001fb in task 0x0080246c
+PageSize
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x02000087 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x008028d0
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x01800087 maps
+6) 0x01400087 maps
+a, load_addr:0x01800000
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x020000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x008028d0
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x01800087 maps
+6) 0x01400087 maps
+jumping from current task 0x0080246c @0x00c00b23
+SWITCH to 0x00800004
+jumping to 0x00404c1c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x008028d0
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x01800087 maps
+6) 0x01400087 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x020000e7 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x008028d0
+jumping to 0x01802a24
+jumped from 0x01802a32 in task 0x008028d0
+AllocPage vaddr 0x01000000 => paddr 0x02400000
+jumped from 0x01802a3e in task 0x008028d0
+PageSize
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x008028d0
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x01800087 maps
+4) 0x02400087 maps
+6) 0x014000a7 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x020000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumped from 0x01802938 in task 0x008028d0
+AllocPage vaddr 0x01400000 => paddr 0x02800000
+__libc_start_main: 0x01802a60
+jumped from 0x0180295b in task 0x008028d0
+PageSize
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x008028d0
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x01800087 maps
+4) 0x024000e7 maps
+5) 0x02800087 maps
+6) 0x014000a7 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x020000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+Malloc page: 0x01400000
+pagesize: 0x00400000
+heap init?
+Hello from userboot stage 1!
+jumped from 0x01802a52 in task 0x008028d0
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x008028d0
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x018000e7 maps
+4) 0x024000e7 maps
+5) 0x028000e7 maps
+6) 0x014000e7 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x020000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+DELETING task 0x008028d0
+SWITCH to 0x0080246c
+jumping to 0x00c00b23
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x020000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumping from current task 0x0080246c @0x00c00b23
+SWITCH to 0x00800004
+jumping to 0x00404c1c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x020000e7 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x0080246c
+jumping to 0x00c00b23
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x020000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumping from current task 0x0080246c @0x00c00b23
+SWITCH to 0x00800004
+jumping to 0x00404c1c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x020000e7 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x0080246c
+jumping to 0x00c00b23
+b
+argv_dst: 0x01800004
+strs_dst: 0x0180000c
+end CreateParams
+jumped from 0x00c002c1 in task 0x0080246c
+Unmapped vaddr 0x01800000 (paddr 0x02000000) in task 0x0080246c (owner: 0)
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+DEBUG_PRINT> argv_page map: 0x01800000 => 0x00c00000
+jumped from 0x00c002ad in task 0x0080246c
+DEBUG_PRINT> waiting to start process 0x00806008.
+jumped from 0x00c0002e in task 0x0080246c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x00c000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x02000087 maps
+6) 0x01c00087 maps
+DELETING task 0x0080246c
+SWITCH to 0x00800004
+jumping to 0x00404c1c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x02000087 maps
+6) 0x01c00087 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x00806008
+jumping to 0x018063a8
+jumped from 0x018063b6 in task 0x00806008
+AllocPage vaddr 0x01000000 => paddr 0x00c00000
+jumped from 0x018063c2 in task 0x00806008
+PageSize
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x02000087 maps
+4) 0x00c00087 maps
+6) 0x01c000a7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumped from 0x01805f98 in task 0x00806008
+AllocPage vaddr 0x01400000 => paddr 0x01000000
+__libc_start_main: 0x018063e0
+jumped from 0x01805fbb in task 0x00806008
+PageSize
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x02000087 maps
+4) 0x00c000e7 maps
+5) 0x01000087 maps
+6) 0x01c000a7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+Malloc page: 0x01400000
+pagesize: 0x00400000
+heap init?
+=== Userboot Stage 2 ===
+argc: 2
+argv: 0x00c00004
+DEBUG_PRINT> dir: ./
+DEBUG_PRINT> dir: ./tests/
+DEBUG_PRINT> file: ./tests/test-malloc
+DEBUG_PRINT> file: ./test-hello
+DEBUG_PRINT> file: ./userboot-stage2
+DEBUG_PRINT> Attempting to run ./test-hello. Allocating page for executable.
+aligned elf data: 0x01400004
+args.file.size: 0x0000a820
+jumped from 0x01805f98 in task 0x00806008
+AllocPage vaddr 0x01c00000 => paddr 0x01400000
+DEBUG_PRINT> ELF module location: 0x01400004
+DEBUG_PRINT> load address: 0x01c00000
+DEBUG_PRINT> program type: 3
+DEBUG_PRINT> program entry point (offset): 0x00002a24
+DEBUG_PRINT> LOAD segment Offset: 00000000, VirtAddr: 0x00000000, filesz: 0x00000ca8, memsz: 0x00000ca8
+DEBUG_PRINT> LOAD segment Offset: 00000cb0, VirtAddr: 0x00001cb0, filesz: 0x00002908, memsz: 0x00002908
+DEBUG_PRINT> LOAD segment Offset: 000035b8, VirtAddr: 0x000055b8, filesz: 0x00000064, memsz: 0x00000064
+DEBUG_PRINT> LOAD segment Offset: 0000361c, VirtAddr: 0x0000661c, filesz: 0x0000000c, memsz: 0x00000014
+DEBUG_PRINT> String table size: 0x00000001
+reloc R_386_RELATIVE: 0x01c05618 = 0x01c02a60
+jumped from 0x01805fe7 in task 0x00806008
+DEBUG_PRINT> new process handle: 0x0080246c
+jumped from 0x0180602f in task 0x00806008
+Mapped vaddr 0x01c00000 => paddr 0x01400000 in task 0x0080246c
+  Originally mapped from vaddr 0x01c00000 in task 0x00806008
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Map2
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+new_load_addr: 0x01c00000
+jumped from 0x01806081 in task 0x00806008
+Unmapped vaddr 0x01c00000 (paddr 0x01400000) in task 0x00806008 (owner: 0)
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+jumped from 0x01805f98 in task 0x00806008
+AllocPage vaddr 0x01c00000 => paddr 0x01800000
+jumped from 0x0180602f in task 0x00806008
+Mapped vaddr 0x00c00000 => paddr 0x01800000 in task 0x0080246c
+  Originally mapped from vaddr 0x01c00000 in task 0x00806008
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Map2
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+start CreateParams (this_argv_page: 0x01c00000)
+jumped from 0x01805fbb in task 0x00806008
+PageSize
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x98938d08
+0x01403004[3]: 0x89ffff9d
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x020000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x01c000e7 maps
+7) 0x01800087 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+a, load_addr:0x01c00000
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x020000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x01c000e7 maps
+7) 0x018000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumping from current task 0x00806008 @0x01805cb7
+SWITCH to 0x00800004
+jumping to 0x00404c1c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x020000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x01c000e7 maps
+7) 0x018000e7 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x00806008
+jumping to 0x01805cb7
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x020000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x01c000e7 maps
+7) 0x018000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumping from current task 0x00806008 @0x01805ca3
+SWITCH to 0x00800004
+jumping to 0x00404c1c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x020000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x01c000e7 maps
+7) 0x018000e7 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x00806008
+jumping to 0x01805ca3
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x020000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x01c000e7 maps
+7) 0x018000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumping from current task 0x00806008 @0x01805ca3
+SWITCH to 0x00800004
+jumping to 0x00404c1c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x020000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x01c000e7 maps
+7) 0x018000e7 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x00806008
+jumping to 0x01805ca3
+b
+argv_dst: 0x01c00004
+strs_dst: 0x01c0000c
+end CreateParams
+jumped from 0x01806081 in task 0x00806008
+Unmapped vaddr 0x01c00000 (paddr 0x01800000) in task 0x00806008 (owner: 0)
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+DEBUG_PRINT> argv_page map: 0x01c00000 => 0x00c00000
+jumped from 0x0180606d in task 0x00806008
+DEBUG_PRINT> waiting to start process 0x0080246c.
+jumped from 0x018063d6 in task 0x00806008
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00806008
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x020000e7 maps
+4) 0x00c000e7 maps
+5) 0x010000e7 maps
+6) 0x01c000e7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x01800087 maps
+7) 0x01400087 maps
+DELETING task 0x00806008
+SWITCH to 0x00800004
+jumping to 0x00404c1c
+SCHED START
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x01800087 maps
+7) 0x01400087 maps
+jumping from current task 0x00800004 @0x00404c1c
+SWITCH to 0x0080246c
+jumping to 0x01c02a24
+jumped from 0x01c02a32 in task 0x0080246c
+AllocPage vaddr 0x01000000 => paddr 0x00c00000
+ALLOC PAGE
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+jumped from 0x01c02a3e in task 0x0080246c
+PageSize
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x01800087 maps
+4) 0x00c00087 maps
+7) 0x014000a7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+jumped from 0x01c02938 in task 0x0080246c
+AllocPage vaddr 0x01400000 => paddr 0x01000000
+ALLOC PAGE
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+__libc_start_main: 0x01c02a60
+jumped from 0x01c0295b in task 0x0080246c
+PageSize
+0x01402ff8[0]: 0x9bb8938d
+0x01402ffc[1]: 0x5089ffff
+0x01403000[2]: 0x00000000
+0x01403004[3]: 0x00000000
+Checking vaddrs mapping to paddr 0x01400000
+task 0x0080246c
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+3) 0x01800087 maps
+4) 0x00c000e7 maps
+5) 0x01000087 maps
+7) 0x014000a7 maps
+task 0x00800004
+1) 0x004000e3 maps
+2) 0x008000e3 maps
+Malloc page: 0x01400000
+pagesize: 0x00400000
+Page fault!!! When trying to read from 0x00400000 
+- IP:0x01c03340
+- The page was present
+- CPU was in user-mode
+- Occurred in task at 0x0080246c
+gs:     0x00000023 fs:       0x00000023 es:     0x00000023 ds:  0x00000023 cs: 0x0000001b
+eax:    0x00400000 ebx:      0x01c0661c ecx:    0x01400000 edx: 0x01c00b47
+edi:    0x00000000 esi:      0x00c00000 ebp:    0x013ffff4 esp: 0x00805fe8
+int_no: 0x0000000e err_code: 0x00000005
+eip:    0x01c03340 eflags:   0x00000202 usersp: 0x013fffb4 ss:  0x00000023
+useresp[-20]: 0x0000000c
+useresp[-16]: 0x013fffbc
+useresp[-12]: 0x00c00000
+useresp[-8]: 0x01c0661c
+useresp[-4]: 0x013ffff4
+useresp[0]: 0x01c02b9a
+useresp[4]: 0x01400000
+useresp[8]: 0x00400000
+useresp[12]: 0x00000003
+useresp[16]: 0x00000000
+this page is not empty at 0x01c00000
+Mapped pages:
+1) 0x004000e3 (vaddr 0x00400000 => paddr 0x00400000, present, writable, user-inaccessible, not cached, not global)
+2) 0x008000e3 (vaddr 0x00800000 => paddr 0x00800000, present, writable, user-inaccessible, not cached, not global)
+3) 0x01800087 (vaddr 0x00c00000 => paddr 0x01800000, present, writable, user-accessible, not cached, not global)
+4) 0x00c000e7 (vaddr 0x01000000 => paddr 0x00c00000, present, writable, user-accessible, not cached, not global)
+5) 0x01000087 (vaddr 0x01400000 => paddr 0x01000000, present, writable, user-accessible, not cached, not global)
+7) 0x014000a7 (vaddr 0x01c00000 => paddr 0x01400000, present, writable, user-accessible, not cached, not global)
+0x01c05598: 0x00000000
+KERNEL ABORT!!!
+Stack trace:
+0) 0x0040bfc7
+1) 0x00408534
+2) 0x00409a6b
+3) 0x0040a515
+4) 0x01c02a48
+QEMU: Terminated
+

@@ -1,0 +1,33 @@
+#ifndef FUNCTIONAL_
+#define FUNCTIONAL_
+
+#include <utility>
+
+namespace std {
+
+template <class _Arg1, class _Arg2, class _Result>
+struct binary_function {
+  typedef _Arg1 first_argument_type;
+  typedef _Arg2 second_argument_type;
+  typedef _Result result_type;
+};
+
+template <class _Tp = void>
+struct less : binary_function<_Tp, _Tp, bool> {
+  bool operator()(const _Tp& __x, const _Tp& __y) const { return __x < __y; }
+};
+
+template <>
+struct less<void> {
+  template <class _T1, class _T2>
+  auto operator()(_T1&& __t, _T2&& __u) const
+      noexcept(noexcept(std::forward<_T1>(__t) < std::forward<_T2>(__u)))
+          -> decltype(std::forward<_T1>(__t) < std::forward<_T2>(__u)) {
+    return std::forward<_T1>(__t) < std::forward<_T2>(__u);
+  }
+  typedef void is_transparent;
+};
+
+}  // namespace std
+
+#endif  // FUNCTIONAL_

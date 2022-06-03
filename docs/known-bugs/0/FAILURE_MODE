@@ -1,0 +1,163 @@
+I ran into an issue where I hit this page fault:
+
+(Copied from the end of FAILURE_MODE_OUTPUT)
+
+```
+Page fault!!! When trying to read from 0x00400000 
+- IP:0x01c03340
+- The page was present
+- CPU was in user-mode
+- Occurred in task at 0x0080246c
+gs:     0x00000023 fs:       0x00000023 es:     0x00000023 ds:  0x00000023 cs: 0x0000001b
+eax:    0x00400000 ebx:      0x01c0661c ecx:    0x01400000 edx: 0x01c00b47
+edi:    0x00000000 esi:      0x00c00000 ebp:    0x013ffff4 esp: 0x00805fe8
+int_no: 0x0000000e err_code: 0x00000005
+eip:    0x01c03340 eflags:   0x00000202 usersp: 0x013fffb4 ss:  0x00000023
+useresp[-20]: 0x0000000c
+useresp[-16]: 0x013fffbc
+useresp[-12]: 0x00c00000
+useresp[-8]: 0x01c0661c
+useresp[-4]: 0x013ffff4
+useresp[0]: 0x01c02b9a
+useresp[4]: 0x01400000
+useresp[8]: 0x00400000
+useresp[12]: 0x00000003
+useresp[16]: 0x00000000
+this page is not empty at 0x01c00000
+Mapped pages:
+1) 0x004000e3 (vaddr 0x00400000 => paddr 0x00400000, present, writable, user-inaccessible, not cached, not global)
+2) 0x008000e3 (vaddr 0x00800000 => paddr 0x00800000, present, writable, user-inaccessible, not cached, not global)
+3) 0x01800087 (vaddr 0x00c00000 => paddr 0x01800000, present, writable, user-accessible, not cached, not global)
+4) 0x00c000e7 (vaddr 0x01000000 => paddr 0x00c00000, present, writable, user-accessible, not cached, not global)
+5) 0x01000087 (vaddr 0x01400000 => paddr 0x01000000, present, writable, user-accessible, not cached, not global)
+7) 0x014000a7 (vaddr 0x01c00000 => paddr 0x01400000, present, writable, user-accessible, not cached, not global)
+0x01c05598: 0x00000000
+KERNEL ABORT!!!
+Stack trace:
+0) 0x0040bfc7
+1) 0x00408534
+2) 0x00409a6b
+3) 0x0040a515
+4) 0x01c02a48
+```
+
+Now the page fault indicates that at EIP = 0x01c03340, we attempt to access the
+virtual address 0x00400000 which is the identity mapped address of the kernel.
+The binary running is userboot/test-hello and is loaded at virtual address
+0x01c00000. In the ELF binary, 0x3340 points to the start of a function with:
+
+```
+00003340 <_ZN4libc6malloc10InitializeEjj>:
+; _ZN4libc6malloc10InitializeEjj():
+; libc/malloc.cpp:323
+;                 [[maybe_unused]] size_t alloc_size) {
+    3340: 55                            pushl   %ebp
+```
+
+However, this shouldn't really result in the page fault we're seeing since we're
+not really accessing anything. I suppose if ESP pointed into unmapped memory,
+then the access would maybe be storing the value of EBP at that stack pointer
+(if it works that way), but the user ESP is 0x013fffb4 which is nowhere near the
+faulty address.
+
+Here's the kicker, if I were to printf the values at and around address 0x01c03340,
+we would see that it's all zero. That is, the instructions at and around this EIP
+are all zero. The instructions corresponding to `0x00 0x00` is `addb %al, (%eax)`,
+and this is where we get the dereference from. EAX is 0x00400000, which was the
+return value from the prior `syscall::PageSize` call. The new question becomes:
+why are there zeros at this address? In fact, it's not just zeros around here.
+Everything starting from the virtual address 0x01c03000 onward is just zeros,
+even though the values copied onto there are non-zero. This vaddr maps to the
+physical address 0x01400000, so the failure log prints a bunch of these. (I focus
+on this address because this address definitely shouldn't be filled with zeros.
+I'll explain later that flaky instances when this isn't filled with zeros, so is
+the faulty address in the page fault and the entire program just works.)
+
+These values should deinitely be non-zero, and we know that because these are
+the logical steps that the elf loader does:
+
+1. In the current task (0x00806008), allocate an anonymous page via the `AllocPage`
+   syscall. This created a page at virtual address 0x01c00000 which mapped to a
+   physical page at address 0x01400000.
+
+2. Copy loadable segments onto this page. One of the segments starts at virtual
+   address 0x1cb0 and has `memsz` 0x2908, so the memcpy covers the virtual address
+   0x01c03000 (physical address 0x01403000). If I print the values at this physical
+   address, I can confirm they're filled with the correct values from the original
+   binary:
+
+   ```
+   0x01402ff8[0]: 0x9bb8938d
+   0x01402ffc[1]: 0x5089ffff
+   0x01403000[2]: 0x98938d08
+   0x01403004[3]: 0x89ffff9d
+   ```
+
+3. Using the `MapPage` syscall, map this physical page to an available virtual page
+   in the new subprocess (this virtual address happens to be 0x01c00000 also). Also
+   assign the new process as the owner of the physical page via the SWAP_OWNER flag.
+
+4. Unmap the virtual page from the current task, so accessing 0x01c00000 in the
+   current process will result in a page fault, and the only way to physically access
+   the physical page at 0x0140000 is via the new process at vaddr 0x01c00000.
+
+5. Do some other stuff involving setting up the argv page, then eventually start
+   the process via the ProcessStart syscall.
+
+At no point after the unmapping can we possibly write to the physical address 0x0140000
+(in userspace) except through the new process after it starts. I'm even able to assert
+not even the kernel has a mapping to that physical page; only the new process has a
+mapping to it, and it hasn't even started yet, so it can't possibly write to it.
+
+I confirmed the physical memory is zeros via (1) temporarily mapping and printing
+physical mem at specific instances (like in syscalls), and (2) dumping physical
+mem via `pmemsave` and a hexdump on the crash. `savedmem` contains the output of
+`pmsemsave` starting from paddr 0x01400000.
+
+I've narrowed down to when the "zero-ing" happens to somewhere between the call to
+`PageSize` in `CreateParams` and the first scheduled context switch that happens
+after the `print("a...\n")` in `CreateParams` (but before the following `print("b\n")`.
+Now in between those two prints is a `memset` that sets the page allocated for
+the argv data to zero (note that this isn't needed and I'll just end up not doing
+this `memset` as a workaround.) The only possible thing I could think of happening
+is that the `memset` is somehow writing zeros explicitly to that physical page.
+There are a number of issues with this though:
+
+1. The physical address (mapped to the virtual address we actually pass to the
+   `memset`) actually points to 0x01800000, one whole page above 0x01400000. The
+   `memset` size is also 4MB, so arithmetically, we cannot possibly write to this
+   region (ie. this can't possibly be an overflow).
+2. This `memset` occures in the current process, which does not have any virtual
+   mapping to the physical address 0x01400000.
+3. The zeros start at 0x01403000. How can any arithmetic work out between the
+   page address (0x01800000) and page size (0x0040000) such that the "zero bounadry"
+   stops at 0x01403000.
+
+An interesting/unusual thing though is that removing the `memset` (or reducing the
+size of the `memset`) somehow causes this issue to go away and the code runs as
+expected.
+
+Another behavior I noticed is that if I were to temporarily reload/reset `cr3` via
+
+
+```
+mov %cr3, %eax
+mov %eax,%cr3
+```
+
+then the issue goes away. This made me think this had something to do with the
+TLB entry for this particular virtual address not getting flushed, but this stack
+overflow answer explains why this shouldn't be the case: https://stackoverflow.com/q/72412396/2775471.
+
+Another thing I've noticed is if I used KVM, then this issue goes away. I'm not
+sure if any of these "workarounds" are indiciative of QEMU not working as intended,
+but I want to give QEMU the beneit of the doubt and assume my untested primitive
+i386 code isn't running correctly rather than this production-ready emulator isn't
+working correctly.
+
+MY PLAN: Temporarily comment out the `memset` since it's not needed technically.
+Continue with implementing the filesystem and the elf loader until we're at a point
+when we can write a reliable test suite and write as many thorough tests as possible
+in hops we can tickle this issue again. Ideally we'll either run into something
+that test-driven development will catch, or we'll have better debugging tools that
+can help find this.

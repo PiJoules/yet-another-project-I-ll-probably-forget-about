@@ -1,0 +1,28 @@
+#ifndef UTILITY_
+#define UTILITY_
+
+#include <type_traits>
+
+namespace std {
+
+template <class _Tp>
+inline typename remove_reference<_Tp>::type&& move(_Tp&& __t) {
+  typedef typename remove_reference<_Tp>::type _Up;
+  return static_cast<_Up&&>(__t);
+}
+
+template <class T>
+inline T&& forward(typename std::remove_reference<T>::type& t) noexcept {
+  return static_cast<T&&>(t);
+}
+
+template <class T>
+inline T&& forward(typename std::remove_reference<T>::type&& t) noexcept {
+  static_assert(!std::is_lvalue_reference<T>::value,
+                "Can not forward an rvalue as an lvalue.");
+  return static_cast<T&&>(t);
+}
+
+}  // namespace std
+
+#endif  // UTILITY_
