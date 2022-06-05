@@ -16,7 +16,7 @@ namespace {
 void HandleDynamicSection(const Elf32_Dyn *dynamic, Relocator &relocator) {
   const uintptr_t *rel_addr = nullptr;
   const int32_t *rel_size = nullptr, *rel_ent_size = nullptr;
-  const int32_t *flags1 = nullptr;
+  const int32_t *flags = nullptr, *flags1 = nullptr;
   const int32_t *rel_count;
 
   bool exit = false;
@@ -70,6 +70,11 @@ void HandleDynamicSection(const Elf32_Dyn *dynamic, Relocator &relocator) {
         // contains info on various DT_FLAGS_1 values.
         flags1 = &dynamic->d_un.d_val;
         break;
+      case DT_FLAGS:
+        // https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-42444.html#chapter7-tbl-5
+        // contains info on various DT_FLAGS values.
+        flags = &dynamic->d_un.d_val;
+        break;
       case DT_GNU_HASH:
         // DEBUG_PRINT("GNU Hash address: 0x%x\n", dynamic->d_un.d_ptr);
         break;
@@ -94,6 +99,9 @@ void HandleDynamicSection(const Elf32_Dyn *dynamic, Relocator &relocator) {
   if (flags1)
     DEBUG_ASSERT((*flags1 & DF_1_PIE) &&
                  "Expected a position independent executable");
+
+  // TODO: Might want to process these at some point.
+  (void)flags;
 }
 
 }  // namespace

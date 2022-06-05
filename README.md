@@ -5,6 +5,13 @@
   - Why v14? This is the version of lld that supports binary output format.
 - python3
 - tar (GNU) v1.34
+- Tools needed by grub-mkrescue
+  - mformat
+    - `apt-get install mtools`
+  - xorriso
+    - `apt-get install xorriso`
+- QEMU (for i386 emulation)
+  - `sudo apt-get install qemu-kvm qemu`
 
 # Building
 
@@ -23,17 +30,18 @@ $ cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=$(realpath --n
 $ ninja os.img
 ```
 
+NOTE: Depending on your environmental setup, the `cmake` and `ninja` invocations may
+not work as smoothly as just entering them above. (If I remember to, I'll list some
+workflows/issues I ran into.)
+
 # Running
 
 ```
-$ qemu-system-i386 -kernel kernel/kernel.debug -nographic -no-reboot -enable-kvm
+$ qemu-system-i386 -kernel kernel/kernel.debug -nographic -no-reboot
 
 # If initrd is built:
-$ qemu-system-i386 -kernel kernel/kernel.debug -nographic -no-reboot -enable-kvm -initrd userboot/userboottest1.bin
+$ qemu-system-i386 -kernel kernel/kernel.debug -nographic -no-reboot -initrd userboot/userboot.img
 ```
-
-KVM guarantees the code will run as intended on the machine. Otherwise this
-code is suceptible to bugs QEMU that cannot be explained.
 
 # Formatting
 

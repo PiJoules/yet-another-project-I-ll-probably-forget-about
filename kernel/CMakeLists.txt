@@ -66,6 +66,7 @@ target_include_directories(${KERNEL_DEBUG}
 target_compile_definitions(${KERNEL_DEBUG} PRIVATE ${KERNEL_MACRO})
 target_link_options(${KERNEL_DEBUG}
   PRIVATE -T ${CMAKE_CURRENT_SOURCE_DIR}/link.ld
+  PRIVATE -fuse-ld=lld
   PRIVATE -nostdlib
   PRIVATE -Wl,-no-pie)
 target_link_libraries(${KERNEL_DEBUG}
