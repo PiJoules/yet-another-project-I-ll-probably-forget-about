@@ -94,6 +94,12 @@ class Dir : public VFSNode {
       return *this;
     }
 
+    iterator operator++(int) {
+      iterator cpy = *this;
+      ++it_;
+      return cpy;
+    }
+
     VFSNode &operator*() { return *(*it_); }
 
    private:
@@ -142,7 +148,7 @@ bool IsAbsPath(const std::string &path);
 bool IsRelPath(const std::string &path);
 VFSNode *GetNodeFromAbsPath(std::string path);
 
-const Dir *GetCurrentDir();
+Dir *GetCurrentDir();
 VFSNode *GetNodeFromRelPath(std::string path, const Dir *cwd = GetCurrentDir());
 
 inline VFSNode *GetNodeFromPath(const std::string &path) {

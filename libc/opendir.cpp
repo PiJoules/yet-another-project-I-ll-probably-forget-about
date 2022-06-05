@@ -39,6 +39,7 @@ dirent *readdir(DIR *dirp) {
   size_t len = std::min(sizeof(dirent::d_name) - 1, name.size());
   memcpy(dirp->entry.d_name, name.c_str(), len);
   dirp->entry.d_name[len] = 0;
+  dirp->it++;
 
   // TODO: What should go in `d_ino`?
   return &dirp->entry;

@@ -16,9 +16,9 @@ struct GlobalState {
   uintptr_t vfs_page;
 };
 
-const Dir *GetCurrentDir();
-const RootDir *GetGlobalFS();
-const GlobalState *GetGlobalState();
+Dir *GetCurrentDir();
+RootDir *GetGlobalFS();
+GlobalState *GetGlobalState();
 
 // Create a page containing the `GlobalState` which is owned by another
 // process. Return the virtual address in that new process this page can be

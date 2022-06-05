@@ -1,17 +1,25 @@
+#include <assert.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 int main(int argc, char **argv) {
-  if (argc < 2) {
-    printf("TODO: `ls` must be provided a directory as an argument\n");
-    return -1;
+  constexpr size_t kBuffSize = 1024;
+  char buff[kBuffSize] = {};
+
+  const char *dir;
+  if (argc >= 2) {
+    dir = argv[1];
+  } else {
+    dir = getcwd(buff, kBuffSize);
+    assert(dir);
   }
 
-  DIR *mydir = opendir(argv[1]);
+  DIR *mydir = opendir(dir);
   if (!mydir) {
-    printf("No directory named '%s'\n", argv[1]);
+    printf("No directory named '%s'\n", dir);
     return 1;
   }
   struct dirent *myfile;

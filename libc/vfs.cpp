@@ -56,6 +56,9 @@ void CleanPath(std::string &path) {
   }
 
   InplaceRStrip(path);
+
+  // Be careful not to strip the root dir path ("/").
+  if (path.size() == 1 && path[0] == kPathSep) return;
   InplaceRStrip(path, [](char c) { return c == kPathSep; });
 }
 
@@ -203,6 +206,10 @@ std::string VFSNode::getAbsPath() const {
 
 static VFSNode *GetNodeFromRelPathImpl(std::string &path, const Dir &cwd) {
   assert(!path.empty());
+
+  if (path.size() == 1 && path[0] == kPathSep)
+    return libc::startup::GetGlobalFS();  // Root dir
+
   assert(path[0] != kPathSep);
   assert(*path.end() != kPathSep);
 

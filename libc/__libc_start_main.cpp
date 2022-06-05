@@ -27,9 +27,9 @@ libc::startup::Dir *gCurrentDir = nullptr;
 
 namespace libc {
 namespace startup {
-const Dir *GetCurrentDir() { return gCurrentDir; }
-const RootDir *GetGlobalFS() { return gGlobalFs; }
-const GlobalState *GetGlobalState() { return gGlobalState; }
+Dir *GetCurrentDir() { return gCurrentDir; }
+RootDir *GetGlobalFS() { return gGlobalFs; }
+GlobalState *GetGlobalState() { return gGlobalState; }
 }  // namespace startup
 }  // namespace libc
 
