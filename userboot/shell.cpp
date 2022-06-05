@@ -50,8 +50,16 @@ void DebugRead(char *buffer) {
 // This buffer is a single string that was typed on the cmdline. `argv` entries
 // must be null-terminated. We can just edit the original buffer replacing
 // whitespace with NULLs, so our actual `argv` array can point into this buffer.
-std::vector<char *> TransformIntoArgv(char *buff) {
+//
+// Save the exe path that into `path_arg` so it can be directly passed to
+// `execv`.
+std::vector<char *> TransformIntoArgv(char *buff, const char *&path_arg) {
   std::vector<char *> argv;
+
+  // In case there's any whitespace at the start, save the pointer to the
+  // path.
+  while (*buff && isspace(*buff)) { ++buff; }
+  path_arg = buff;
 
   while (*buff) {
     if (isspace(*buff)) {
@@ -86,7 +94,14 @@ int main(int, char **) {
   while (1) {
     printf("%s $ ", cwd.c_str());
     DebugRead(buff);
-    std::vector<char *> argv = TransformIntoArgv(buff);
-    execv(buff, argv.data());
+    const char *path;
+    std::vector<char *> argv = TransformIntoArgv(buff, path);
+    if (argv.size() == 1) {
+      // This was just all whitepace.
+      continue;
+    }
+
+    int res = execv(path, argv.data());
+    if (res < 0) { printf("%s: command not found\n", path); }
   }
 }
