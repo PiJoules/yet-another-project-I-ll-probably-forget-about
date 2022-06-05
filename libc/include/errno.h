@@ -2,6 +2,7 @@
 #define LIBC_INCLUDE_ERRNO_H_
 
 #include <_internals.h>
+#include <bits/errno.h>
 
 __BEGIN_CDECLS
 

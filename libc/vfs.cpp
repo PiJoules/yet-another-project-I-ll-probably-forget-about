@@ -1,5 +1,7 @@
 #ifndef __KERNEL__
 
+#define LOCAL_DEBUG_LVL 0
+
 #include <ctype.h>
 #include <libc/startup/globalstate.h>
 #include <libc/startup/startparams.h>
@@ -10,8 +12,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-#define DEBUG_PRINT(...) printf("DEBUG_PRINT> " __VA_ARGS__)
 
 using libc::DirInfo;
 using libc::FileInfo;

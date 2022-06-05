@@ -1,17 +1,12 @@
+#define MALLOC_VALIDATION 1
+#define LOCAL_DEBUG_LVL 0
+
 #include <assert.h>
 #include <libc/malloc.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <algorithm>
-
-#define MALLOC_VALIDATION 1
-
-#ifdef NDEBUG
-#define DEBUG_PRINT(...) (void)(__VA_ARGS__)
-#else
-#define DEBUG_PRINT(...) printf("DEBUG_PRINT> " __VA_ARGS__)
-#endif
 
 #ifdef __KERNEL__
 #include <kernel/kernel.h>

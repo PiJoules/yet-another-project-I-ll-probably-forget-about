@@ -1,5 +1,6 @@
 #if !defined(__KERNEL__) && !defined(__USERBOOT_STAGE1__)
 
+#include <errno.h>
 #include <libc/elf/elf.h>
 #include <libc/startup/globalstate.h>
 #include <libc/startup/startparams.h>
@@ -11,8 +12,10 @@ using libc::startup::Dir;
 
 int execv(const char *path, char *const argv[]) {
   libc::startup::VFSNode *node = libc::startup::GetNodeFromPath(path);
-  if (!node) return -1;
-  if (!node->isFile()) return -1;
+  if (!node || !node->isFile()) {
+    errno = EACCES;
+    return -1;
+  }
 
   const auto &f = static_cast<libc::startup::File &>(*node);
 

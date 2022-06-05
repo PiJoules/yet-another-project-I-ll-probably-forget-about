@@ -1,5 +1,7 @@
 #ifndef __KERNEL__
 
+#define LOCAL_DEBUG_LVL 0
+
 #include <assert.h>
 #include <libc/elf/elf.h>
 #include <libc/startup/globalstate.h>

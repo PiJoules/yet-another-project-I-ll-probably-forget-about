@@ -7,14 +7,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef NDEBUG
-#define DEBUG_PRINT(...) (void)(__VA_ARGS__)
-#define DEBUG_ASSERT(x) (void)(x)
-#else
-#define DEBUG_PRINT(...) printf("DEBUG_PRINT> " __VA_ARGS__)
-#define DEBUG_ASSERT(x) assert(x)
-#endif
-
 #define DEBUG_OK(x) DEBUG_ASSERT((x) == K_OK)
 
 namespace libc {

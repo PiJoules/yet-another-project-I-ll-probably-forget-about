@@ -2,6 +2,8 @@
 // messing with that, we'll just wrap this in a guard.
 #ifndef __KERNEL__
 
+#define LOCAL_DEBUG_LVL 0
+
 #include <assert.h>
 #include <libc/malloc.h>
 #include <libc/startup/globalstate.h>

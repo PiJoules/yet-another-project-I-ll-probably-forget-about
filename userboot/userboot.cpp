@@ -1,3 +1,5 @@
+#define LOCAL_DEBUG_LVL 0
+
 #include <assert.h>
 #include <ctype.h>
 #include <libc/elf/elf.h>
@@ -14,14 +16,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-#define DEBUG_PRINT(...) printf("DEBUG_PRINT> " __VA_ARGS__)
-
-#ifdef NDEBUG
-#define DEBUG_ASSERT(x) (void)(x)
-#else
-#define DEBUG_ASSERT(x) assert(x)
-#endif
 
 #define DEBUG_OK(x) DEBUG_ASSERT((x) == K_OK)
 
