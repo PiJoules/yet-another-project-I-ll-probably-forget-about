@@ -46,7 +46,8 @@ void FindAndRunRootElfExe(uintptr_t tar_start, const char *filename,
     if (strcmp(fileinfo.name, args->filename) == 0) { args->file = fileinfo; }
   };
 
-  libc::IterateUSTAR(tar_start, dircallback, filecallback, &args);
+  size_t tarsize =
+      libc::IterateUSTAR(tar_start, dircallback, filecallback, &args);
   if (args.file.data) {
     DEBUG_PRINT("Attempting to run %s. Allocating page for executable.\n",
                 filename);
@@ -67,8 +68,7 @@ void FindAndRunRootElfExe(uintptr_t tar_start, const char *filename,
       aligned = false;
     }
 
-    LoadElfProgram(elf_data, params, num_params, /*vfs_data=*/0,
-                   /*vfs_data_size=*/0);
+    LoadElfProgram(elf_data, params, num_params, tar_start, tarsize);
 
     if (!aligned) free(reinterpret_cast<void *>(elf_data));
   } else {
@@ -127,16 +127,15 @@ int main(int, char **) {
       "Userboot starting location global does not actually point to the "
       "start of the binary");
 
-  libc::startup::ArgvParam params[] = {
-      libc::startup::ArgvParam("./test-hello"),
-      libc::startup::ArgvParam("from userboot stage 1"),
-  };
-  FindAndRunRootElfExe(userboot_end, params[0].arg, params, 2);
-
   size_t tarsize = libc::GetTarsize(userboot_end);
-  params[0] = libc::startup::ArgvParam("./userboot-stage2");
-  params[1].arg = reinterpret_cast<char *>(userboot_end);
-  params[1].size = tarsize;
+  libc::startup::ArgvParam params[] = {
+      // FIXME: This will only ever launch into stage2 if anything about this
+      // file path changes in the build system (like if the "./" was removed).
+      // Although it means we'd be in stage 1 longer, it might be more reliable
+      // to use libc vfs tools.
+      libc::startup::ArgvParam("./userboot-stage2"),
+      libc::startup::ArgvParam(reinterpret_cast<char *>(userboot_end), tarsize),
+  };
   FindAndRunRootElfExe(userboot_end, params[0].arg, params, 2);
 }
 

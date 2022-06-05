@@ -204,13 +204,8 @@ void LoadElfProgram(uintptr_t elf_data, const libc::startup::ArgvParam *params,
   DEBUG_OK(this_argv_page.MapAnonAndSwap(proc_handle, other_argv_page));
   libc::startup::PackParams(this_argv_page.getAddr(), params, num_params);
 
-  uintptr_t vfs_page;
-  if (vfs_data_size) {
-    vfs_page =
-        libc::startup::ApplyVFSData(vfs_data, vfs_data_size, proc_handle);
-  } else {
-    vfs_page = 0;
-  }
+  uintptr_t vfs_page =
+      libc::startup::ApplyVFSData(vfs_data, vfs_data_size, proc_handle);
 
   // NOTE: We will not be creating a VFS here. That will be done in stage 2.
   libc::startup::GlobalState state = {

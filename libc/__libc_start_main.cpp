@@ -88,11 +88,9 @@ extern "C" void __libc_start_main([[maybe_unused]] uint32_t arg) {
   // FIXME: Technically, the vfs page we allocated could be at address zero, so
   // this would be incorrect. If we fixup userboot to just always set this to
   // some correct page, we won't have to check this here.
-  if (gGlobalState->vfs_page) {
-    libc::startup::InitVFS(root, gGlobalState->vfs_page);
-    gGlobalFs = &root;
-    gCurrentDir = &root;
-  }
+  libc::startup::InitVFS(root, gGlobalState->vfs_page);
+  gGlobalFs = &root;
+  gCurrentDir = &root;
 
   // From here, we need to extract params from our process argument to
   // create argc and argv.

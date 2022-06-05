@@ -150,8 +150,9 @@ void MergeMallocHeaders() {
 }
 
 // Split an allocation for one malloc header into two allocations with
-// two headers. `new_size` indicates the desired size of the first partition.
-// Both headers are guaranteed to be valid after this.
+// two headers (if needed). `new_size` indicates the desired size of the
+// first partition. Both headers (if there are two) are guaranteed to be
+// valid after this.
 MallocHeader *Partition(MallocHeader *header, const size_t desired_size,
                         const size_t desired_align) {
   assert(!header->isUsed());
@@ -174,11 +175,12 @@ MallocHeader *Partition(MallocHeader *header, const size_t desired_size,
 
   if (align >= desired_align) {
     // For this check, we know that the address for this header is aligned,
-    // and we will need to form a partition, since the header size at this
-    // point is greater than the `desired_size`. We cannot form a reliable
-    // second partition though if the remaining space left is zero.
-    if (header->getSize() - desired_size == sizeof(MallocHeader))
-      return nullptr;
+    // and we *may* need to form a partition. One can be formed if we know
+    // the new partition can have a non-zero size (that is, this header size
+    // less the `desired_size` is greater than one malloc header. However,
+    // if it's exactly equal to a malloc header size, rather than just
+    // partitioning, let's just keep that extra header part of this allocation.
+    if (header->getSize() - desired_size == sizeof(MallocHeader)) return header;
 
     // This partition is "normal" in that we create the partition from the start
     // of the header rather than somewhere in the middle.
