@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <syscalls.h>
+#include <unistd.h>
 
 extern "C" int main(int argc, char **argv);
 
@@ -24,6 +25,24 @@ namespace {
 libc::startup::GlobalState *gGlobalState = nullptr;
 libc::startup::RootDir *gGlobalFs = nullptr;
 libc::startup::Dir *gCurrentDir = nullptr;
+libc::startup::Envp *gEnvp = nullptr;
+
+void SetCurrentDir(const char *pwd) {
+  libc::startup::VFSNode *node = libc::startup::GetNodeFromPath(pwd);
+  if (!node) {
+    printf("WARN: Unknown path '%s'. Not using this as CWD.\n", pwd);
+    return;
+  }
+
+  if (!node->isDir()) {
+    printf("WARN: Path '%s' is not a directory. Not using this as CWD.\n", pwd);
+    return;
+  }
+
+  SetCurrentDir(static_cast<libc::startup::Dir *>(node));
+}
+
+constexpr char kPWDEnv[] = "PWD";
 
 }  // namespace
 
@@ -32,6 +51,13 @@ namespace startup {
 Dir *GetCurrentDir() { return gCurrentDir; }
 RootDir *GetGlobalFS() { return gGlobalFs; }
 GlobalState *GetGlobalState() { return gGlobalState; }
+Envp *GetEnvp() { return gEnvp; }
+
+void SetCurrentDir(Dir *wd) {
+  assert(wd);
+  gCurrentDir = wd;
+  gEnvp->setVal(kPWDEnv, wd->getAbsPath());
+}
 }  // namespace startup
 }  // namespace libc
 
@@ -91,6 +117,15 @@ extern "C" void __libc_start_main([[maybe_unused]] uint32_t arg) {
   libc::startup::InitVFS(root, gGlobalState->vfs_page);
   gGlobalFs = &root;
   gCurrentDir = &root;
+
+  libc::startup::Envp envp;
+  libc::startup::UnpackEnvp(reinterpret_cast<char **>(gGlobalState->envp_page),
+                            envp);
+  gEnvp = &envp;
+
+  // The current working dir points to the root dir, but if the `PWD` env
+  // variable is set, then we can manually move to that dir.
+  if (const char *pwd = getenv(kPWDEnv)) { SetCurrentDir(pwd); }
 
   // From here, we need to extract params from our process argument to
   // create argc and argv.

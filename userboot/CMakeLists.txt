@@ -12,6 +12,10 @@ target_include_directories(system_lib
 # targets that depend on this statically do not need to depend on the system
 # lib statically. Ideally, this should be the only dependency any static
 # executable would need for building a standalone ELF binary.
+#
+# TODO: Might be easier to just have a cmake file under `libc/` that defines
+# a variable (or target) we can use that just contains the sources so we don't
+# have to resort to globbing.
 file(GLOB LIBC_SOURCES
   "${CMAKE_SOURCE_DIR}/libc/*.cpp"
   "${CMAKE_SOURCE_DIR}/libc/*.S")
@@ -47,6 +51,15 @@ target_compile_options(userboot_stage1_libc PRIVATE ${USER_CXX_FLAGS})
 target_link_libraries(userboot_stage1_libc PRIVATE system_lib)
 target_compile_definitions(userboot_stage1_libc PRIVATE __USERBOOT_STAGE1__)
 
+add_library(userboot_stage1_libcxx STATIC ${LIBCXX_SOURCES})
+target_include_directories(userboot_stage1_libcxx
+  PRIVATE ${CMAKE_SOURCE_DIR}/libc/include/
+  PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
+  PRIVATE include/)
+target_compile_options(userboot_stage1_libcxx PRIVATE ${USER_CXX_FLAGS})
+target_link_libraries(userboot_stage1_libcxx PRIVATE system_lib)
+target_compile_definitions(userboot_stage1_libcxx PRIVATE __USERBOOT_STAGE1__)
+
 # This is the actual userboot binary. We construct it as a static library because
 # we link it manyally with a linker script.
 add_library(userboot_lib STATIC userboot.cpp userstart.S)
@@ -75,6 +88,7 @@ function(add_userboot_binary name extra_link_flags extra_deps)
 
             --no-whole-archive
             $<TARGET_FILE:userboot_stage1_libc>
+            $<TARGET_FILE:userboot_stage1_libcxx>
             $<TARGET_FILE:userboot_lib>
             $<TARGET_FILE:system_lib>
 

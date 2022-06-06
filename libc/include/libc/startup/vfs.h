@@ -146,16 +146,8 @@ std::string GetAbsPath(const RootDir &root, const VFSNode &node);
 
 bool IsAbsPath(const std::string &path);
 bool IsRelPath(const std::string &path);
-VFSNode *GetNodeFromAbsPath(std::string path);
 
-Dir *GetCurrentDir();
-VFSNode *GetNodeFromRelPath(std::string path, const Dir *cwd = GetCurrentDir());
-
-inline VFSNode *GetNodeFromPath(const std::string &path) {
-  if (path.empty()) return nullptr;
-  if (IsAbsPath(path)) return GetNodeFromAbsPath(path);
-  return GetNodeFromRelPath(path);
-}
+VFSNode *GetNodeFromPath(const std::string &path);
 
 }  // namespace startup
 }  // namespace libc

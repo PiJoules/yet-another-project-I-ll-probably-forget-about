@@ -10,7 +10,10 @@
 using libc::elf::ElfModule;
 using libc::startup::Dir;
 
-int execv(const char *path, char *const argv[]) {
+namespace {
+
+int ExecImpl(const char *path, char *const argv[],
+             const libc::startup::Envp &envp) {
   libc::startup::VFSNode *node = libc::startup::GetNodeFromPath(path);
   if (!node || !node->isFile()) {
     errno = EACCES;
@@ -19,6 +22,7 @@ int execv(const char *path, char *const argv[]) {
 
   const auto &f = static_cast<libc::startup::File &>(*node);
 
+  // TODO: Could also just accept the vector of ArgvParam as an arg.
   std::vector<libc::startup::ArgvParam> params;
   while (char *arg = *(argv++)) { params.emplace_back(arg); }
 
@@ -33,13 +37,25 @@ int execv(const char *path, char *const argv[]) {
     memcpy(aligned_elf_data.get(), f.getData(), f.getSize());
     libc::elf::LoadElfProgram(
         reinterpret_cast<uintptr_t>(aligned_elf_data.get()), params.data(),
-        params.size(), vfs_data, vfs_data_size);
+        params.size(), vfs_data, vfs_data_size, envp);
   } else {
     libc::elf::LoadElfProgram(elf_data, params.data(), params.size(), vfs_data,
-                              vfs_data_size);
+                              vfs_data_size, envp);
   }
 
   return 0;
+}
+
+}  // namespace
+
+int execv(const char *path, char *const argv[]) {
+  return ExecImpl(path, argv, *libc::startup::GetEnvp());
+}
+
+int execve(const char *path, char *const argv[], char *const envp[]) {
+  libc::startup::Envp _envp;
+  libc::startup::UnpackEnvp(envp, _envp);
+  return ExecImpl(path, argv, _envp);
 }
 
 #endif  // !defined(__KERNEL__) && !defined(__USERBOOT_STAGE1__)

@@ -1,5 +1,6 @@
 #if !defined(__KERNEL__) && !defined(__USERBOOT_STAGE1__)
 
+#include <errno.h>
 #include <libc/startup/globalstate.h>
 #include <libc/startup/vfs.h>
 #include <stdint.h>
@@ -10,11 +11,23 @@
 #include <string>
 
 char *getcwd(char *buf, size_t size) {
+  if (!buf || size == 0) {
+    errno = EINVAL;
+    return NULL;
+  }
+
   const libc::startup::Dir *cwd = libc::startup::GetCurrentDir();
-  if (!cwd) return nullptr;
+  assert(cwd);
 
   std::string abspath = cwd->getAbsPath();
-  memcpy(buf, abspath.c_str(), std::min(size, abspath.size()));
+  if (abspath.size() > size - 1) {
+    errno = ERANGE;
+    return NULL;
+  }
+
+  size_t cpysize = std::min(abspath.size(), size - 1);
+  memcpy(buf, abspath.c_str(), cpysize);
+  buf[cpysize] = 0;
   return buf;
 }
 

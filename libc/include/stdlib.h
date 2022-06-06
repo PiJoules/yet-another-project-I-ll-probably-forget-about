@@ -14,6 +14,7 @@ void *calloc(size_t num, size_t size);
 void *aligned_alloc(size_t alignment, size_t size);
 
 int system(const char *cmd);
+char *getenv(const char *name);
 
 __END_CDECLS
 

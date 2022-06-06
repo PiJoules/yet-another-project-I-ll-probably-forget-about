@@ -21,8 +21,7 @@ struct DIR {
 };
 
 DIR *opendir(const char *dirname) {
-  VFSNode *dir = libc::startup::GetNodeFromRelPath(
-      dirname, libc::startup::GetCurrentDir());
+  VFSNode *dir = libc::startup::GetNodeFromPath(dirname);
   if (!dir || !dir->isDir()) return nullptr;
   DIR *dirp = new DIR{
       .it = static_cast<Dir *>(dir)->begin(),

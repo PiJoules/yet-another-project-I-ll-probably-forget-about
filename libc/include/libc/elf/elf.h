@@ -2,6 +2,7 @@
 #define LIBC_INCLUDE_LIBC_ELF_ELF_H_
 
 #include <assert.h>
+#include <libc/startup/globalstate.h>
 #include <libc/startup/startparams.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -394,8 +395,8 @@ class Relocator {
 };
 
 void LoadElfProgram(uintptr_t elf_data, const libc::startup::ArgvParam *params,
-                    size_t num_params, uintptr_t vfs_data,
-                    size_t vfs_data_size);
+                    size_t num_params, uintptr_t vfs_data, size_t vfs_data_size,
+                    const startup::Envp &envp);
 
 }  // namespace elf
 }  // namespace libc

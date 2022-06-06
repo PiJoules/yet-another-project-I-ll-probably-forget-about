@@ -112,8 +112,8 @@ void HandleDynamicSection(const Elf32_Dyn *dynamic, Relocator &relocator) {
 // It's either immediately concatenated after the userboot stage 1, or it's
 // copied somewhere on a page.
 void LoadElfProgram(uintptr_t elf_data, const libc::startup::ArgvParam *params,
-                    size_t num_params, uintptr_t vfs_data,
-                    size_t vfs_data_size) {
+                    size_t num_params, uintptr_t vfs_data, size_t vfs_data_size,
+                    const startup::Envp &envp) {
   syscall::PageAlloc load_addr;
 
   ElfModule elf_mod(elf_data);
@@ -207,10 +207,13 @@ void LoadElfProgram(uintptr_t elf_data, const libc::startup::ArgvParam *params,
   uintptr_t vfs_page =
       libc::startup::ApplyVFSData(vfs_data, vfs_data_size, proc_handle);
 
+  uintptr_t envp_page = libc::startup::ApplyEnvp(envp, proc_handle);
+
   // NOTE: We will not be creating a VFS here. That will be done in stage 2.
   libc::startup::GlobalState state = {
       .argv_page = other_argv_page,
       .vfs_page = vfs_page,
+      .envp_page = envp_page,
   };
   uintptr_t global_state_addr =
       libc::startup::ApplyGlobalState(state, proc_handle);

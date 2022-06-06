@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -85,19 +86,47 @@ int main(int, char **) {
   printf("=== Interactive Shell ===\n");
   constexpr size_t kBuffSize = 1024;
   char buff[kBuffSize] = {};
-  if (!getcwd(buff, kBuffSize)) {
-    printf("Could not find cwd\n");
-    return -1;
-  }
 
-  const std::string cwd(buff);
   while (1) {
+    if (!getcwd(buff, kBuffSize)) {
+      printf("Could not find cwd\n");
+      return -1;
+    }
+    const std::string cwd(buff);
     printf("%s $ ", cwd.c_str());
+
     DebugRead(buff);
     const char *path;
     std::vector<char *> argv = TransformIntoArgv(buff, path);
     if (argv.size() == 1) {
       // This was just all whitepace.
+      continue;
+    }
+
+    // See
+    // https://www.gnu.org/software/bash/manual/html_node/Shell-Builtin-Commands.html
+    // for list of builtin shell commands.
+    if (strcmp(path, "cd") == 0) {
+      if (argv.size() == 2) {
+        // Just `cd`, which would mean go to wherever $HOME is, but since we
+        // don't have a concept of a "$HOME" yet, just ignore it.
+        continue;
+      }
+
+      if (argv.size() != 3) {
+        printf("cd: too many arguments\n");
+        continue;
+      }
+
+      if (chdir(argv[1]) != 0) {
+        if (errno == ENOTDIR) {
+          printf("cd: %s: Not a directory\n", argv[1]);
+        } else {
+          // errno == ENOENT
+          printf("cd: %s: No such file or directory\n", argv[1]);
+        }
+      }
+
       continue;
     }
 

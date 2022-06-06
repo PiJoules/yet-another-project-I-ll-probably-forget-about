@@ -11,8 +11,10 @@ void *memset(void *ptr, int value, size_t size);
 void *memmove(void *dest, const void *src, size_t size);
 size_t strlen(const char *str);
 int strcmp(const char *s1, const char *s2);
+int strncmp(const char *s1, const char *s2, size_t n);
 int memcmp(const void *lhs, const void *rhs, size_t);
 char *strncpy(char *dst, const char *src, size_t num);
+char *strcpy(char *dst, const char *src);
 
 __END_CDECLS
 

@@ -81,8 +81,9 @@ class basic_string {
     data_[length_] = 0;
   }
 
-  basic_string(const basic_string& other, size_type pos, size_type count) {
-    length_ = count;
+  basic_string(const basic_string& other, size_type pos, size_type count = npos) {
+    if (pos > other.size()) __throw_out_of_range();
+    length_ = std::min(other.size() - pos, count);
     data_ = new value_type[length_ + 1];
     for (size_type i = 0; i < length_; ++i) data_[i] = other[pos + i];
     data_[length_] = 0;
@@ -408,6 +409,10 @@ inline basic_string<T> operator+(const T* lhs, const basic_string<T>& rhs) {
   return basic_string<T>(lhs) += rhs;
 }
 
+inline basic_string<char> operator+(const char* lhs, const basic_string<char>& rhs) {
+  return basic_string<char>(lhs) += rhs;
+}
+
 template <typename T>
 inline bool operator==(const basic_string<T>& lhs, char rhs) {
   return (lhs == basic_string(rhs));
@@ -535,7 +540,7 @@ inline bool operator<=(char lhs, const basic_string<T>& rhs) {
 }
 
 template <typename T>
-inline bool operator<=(const char* lhs, const basic_string<T>& rhs) {
+inline bool operator<=(const T* lhs, const basic_string<T>& rhs) {
   return !(lhs > rhs);
 }
 
@@ -563,6 +568,12 @@ template <typename T>
 inline bool operator>=(const char* lhs, const basic_string<T>& rhs) {
   return (lhs == rhs) || (lhs > rhs);
 }
+
+//template <typename T>
+//inline basic_string<T> operator+(const T *lhs, const basic_string<T> &rhs) {
+//  basic_string<T> ret(lhs);
+//  return ret + rhs;
+//}
 
 using string = basic_string<char>;
 

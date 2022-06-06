@@ -121,7 +121,59 @@ class FileBuilder : public NodeBuilder<File, FileInfo> {
   FileBuilder(const FileInfo &info) : NodeBuilder(info) {}
 };
 
+VFSNode *GetNodeFromRelPathImpl(std::string &path, const Dir &cwd) {
+  assert(!path.empty());
+  assert(path[0] != kPathSep);
+  assert(*path.end() != kPathSep);
+
+  size_t path_sep_loc = path.find(kPathSep);
+  if (path_sep_loc == std::string::npos) {
+    // No more directories. Check if the CWD has this node.
+    return cwd.getNode(path);
+  }
+
+  // The current value up to the path separator is a dir.
+  auto dirname = path.substr(0, path_sep_loc);
+  path.erase(0, path_sep_loc + 1);
+
+  if (Dir *existing_dir = cwd.getDir(dirname)) {
+    // This directory exists. Do a recursive check.
+    return GetNodeFromRelPathImpl(path, *existing_dir);
+  }
+
+  // This path doesn't exist.
+  return nullptr;
+}
+
+// TODO: Account for parent directories.
+VFSNode *GetNodeFromRelPath(std::string path, const Dir *cwd) {
+  if (!cwd) return nullptr;
+  CleanPath(path);
+  return GetNodeFromRelPathImpl(path, *cwd);
+}
+
+VFSNode *GetNodeFromAbsPath(std::string path) {
+  const Dir *root = GetGlobalFS();
+  assert(root);
+
+  CleanPath(path);
+  if (!IsAbsPath(path)) return nullptr;
+  if (path.size() == 1 && path[0] == kPathSep)
+    return libc::startup::GetGlobalFS();  // Root dir
+
+  assert(path[0] == kPathSep);
+  path.erase(0, 1);
+
+  return GetNodeFromRelPathImpl(path, *root);
+}
+
 }  // namespace
+
+VFSNode *GetNodeFromPath(const std::string &path) {
+  if (path.empty()) return nullptr;
+  if (IsAbsPath(path)) return GetNodeFromAbsPath(path);
+  return GetNodeFromRelPath(path, GetCurrentDir());
+}
 
 bool IsAbsPath(const std::string &path) { return path[0] == kPathSep; }
 bool IsRelPath(const std::string &path) { return !IsAbsPath(path); }
@@ -201,54 +253,9 @@ std::string VFSNode::getAbsPath() const {
     return getName();
   }
 
+  if (parent == GetGlobalFS()) return "/" + getName();
+
   return parent->getAbsPath() + "/" + getName();
-}
-
-static VFSNode *GetNodeFromRelPathImpl(std::string &path, const Dir &cwd) {
-  assert(!path.empty());
-
-  if (path.size() == 1 && path[0] == kPathSep)
-    return libc::startup::GetGlobalFS();  // Root dir
-
-  assert(path[0] != kPathSep);
-  assert(*path.end() != kPathSep);
-
-  size_t path_sep_loc = path.find(kPathSep);
-  if (path_sep_loc == std::string::npos) {
-    // No more directories. Check if the CWD has this node.
-    return cwd.getNode(path);
-  }
-
-  // The current value up to the path separator is a dir.
-  auto dirname = path.substr(0, path_sep_loc);
-  path.erase(0, path_sep_loc + 1);
-
-  if (Dir *existing_dir = cwd.getDir(dirname)) {
-    // This directory exists. Do a recursive check.
-    return GetNodeFromRelPathImpl(path, *existing_dir);
-  }
-
-  // This path doesn't exist.
-  return nullptr;
-}
-
-// TODO: Account for parent directories.
-VFSNode *GetNodeFromRelPath(std::string path, const Dir *cwd) {
-  if (!cwd) return nullptr;
-  CleanPath(path);
-  return GetNodeFromRelPathImpl(path, *cwd);
-}
-
-VFSNode *GetNodeFromAbsPath(std::string path) {
-  const Dir *root = GetGlobalFS();
-  if (!root) return nullptr;
-
-  CleanPath(path);
-  if (!IsAbsPath(path)) return nullptr;
-  assert(path[0] == kPathSep);
-  path.erase(0, 1);
-
-  return GetNodeFromRelPathImpl(path, *root);
 }
 
 }  // namespace startup

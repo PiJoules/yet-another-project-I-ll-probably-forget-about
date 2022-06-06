@@ -48,6 +48,10 @@ void FindAndRunRootElfExe(uintptr_t tar_start, const char *filename,
 
   size_t tarsize =
       libc::IterateUSTAR(tar_start, dircallback, filecallback, &args);
+
+  // NOTE: This means userboot stage 2 starts with no env variables.
+  libc::startup::Envp envp;
+
   if (args.file.data) {
     DEBUG_PRINT("Attempting to run %s. Allocating page for executable.\n",
                 filename);
@@ -68,7 +72,7 @@ void FindAndRunRootElfExe(uintptr_t tar_start, const char *filename,
       aligned = false;
     }
 
-    LoadElfProgram(elf_data, params, num_params, tar_start, tarsize);
+    LoadElfProgram(elf_data, params, num_params, tar_start, tarsize, envp);
 
     if (!aligned) free(reinterpret_cast<void *>(elf_data));
   } else {
@@ -148,6 +152,10 @@ void Exec(const libc::startup::File &f, uintptr_t vfs_data,
   libc::startup::ArgvParam params[] = {
       libc::startup::ArgvParam(f.getName().c_str()),
   };
+
+  // NOTE: We are starting this exe without any environment variables.
+  libc::startup::Envp envp;
+
   DEBUG_PRINT("Attempting to run %s. Allocating page for executable.\n",
               f.getName().c_str());
 
@@ -158,9 +166,10 @@ void Exec(const libc::startup::File &f, uintptr_t vfs_data,
     DEBUG_ASSERT(aligned_elf_data);
     memcpy(aligned_elf_data.get(), f.getData(), f.getSize());
     LoadElfProgram(reinterpret_cast<uintptr_t>(aligned_elf_data.get()), params,
-                   /*num_params=*/1, vfs_data, vfs_data_size);
+                   /*num_params=*/1, vfs_data, vfs_data_size, envp);
   } else {
-    LoadElfProgram(elf_data, params, /*num_params=*/1, vfs_data, vfs_data_size);
+    LoadElfProgram(elf_data, params, /*num_params=*/1, vfs_data, vfs_data_size,
+                   envp);
   }
 }
 
@@ -179,6 +188,9 @@ int main(int argc, char **argv) {
   printf("argv: %p\n", argv);
 
   // NOTE: This may be unaligned.
+  // TODO: This should not be needed anymore since the global state has a page
+  // pointing to this. At this point, we should be comfortable exercising the
+  // `execv` family of commands.
   uintptr_t raw_vfs_data = reinterpret_cast<uintptr_t>(argv[1]);
 
   libc::startup::ArgvParam params[] = {
