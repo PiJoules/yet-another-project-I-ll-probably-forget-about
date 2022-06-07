@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <string>
@@ -131,6 +132,10 @@ int main(int, char **) {
     }
 
     int res = execv(path, argv.data());
-    if (res < 0) { printf("%s: command not found\n", path); }
+    if (res < 0) {
+      printf("%s: command not found\n", path);
+    } else {
+      wait(nullptr);
+    }
   }
 }

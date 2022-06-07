@@ -40,4 +40,6 @@ inline void __dummy_printf(...) {}
 #define DEBUG_ASSERT(x) assert(x)
 #endif
 
+#define DEBUG_OK(x) DEBUG_ASSERT((x) == K_OK)
+
 #endif  // LIBC_INCLUDE__INTERNALS_H_

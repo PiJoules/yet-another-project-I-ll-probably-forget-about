@@ -283,66 +283,129 @@ void SYS_ProcessStart(isr::registers_t *regs) {
   RegisterTask(*task);
 }
 
-// Retrieve information about a process. This accepts arguments via the
-// following registers:
+kstatus_t TryCopy(const void *src, size_t src_size, void *buff,
+                  size_t buff_size) {
+  if (buff_size < src_size) { return K_BUFFER_TOO_SMALL; }
+  memcpy(buff, src, src_size);
+  return K_OK;
+}
+
+// Retrieve information about a process.
+//
+// This accepts arguments via the following registers:
 //
 //   EBX - The handle to the process to retrieve info on.
-//   ECX - Flags
-//         CURRENT_PROC - If provided, this ignores the value passed to EBX and
+//   ECX - Info kind
+//         PROC_CURRENT - If provided, this ignores the value passed to EBX and
 //                        retrieves info on the current process.
+//         PROC_PARENT - Get the parent of the handle provided in EBX. If the
+//                       parent is no longer running, this will be zero.
+//         PROC_CHILDREN - Get an array of handles representing child tasks of
+//                         the task provided in EBX. If there are no children,
+//                         the returning status is still K_OK and zero bytes
+//                         are written.
 //   EDX - The buffer to write the result to.
 //   ESI - The size of the buffer the result is written to.
 //
 // This sets return values via the following registers:
 //
 //   EAX - The return status of this syscall.
+//   EBX - If the status of this syscall is K_OK, this returns the number of
+//         bytes written to the buffer.
+//         If the status of this syscall is K_BUFFER_TOO_SMALL (that is, this
+//         buffer is not large enough to hold the result), this returns the
+//         number of bytes needed in total to write to the buffer. In this
+//         case, this value will always be non-zero.
 //
 void SYS_ProcessInfo(isr::registers_t *regs) {
-  handle_t proc_handle = regs->ebx;
   enum process_info_flags_t : uint32_t {
-    CURRENT_PROC = 0x1,
+    PROC_CURRENT = 0,
+    PROC_PARENT = 1,
+    PROC_CHILDREN = 2,
   };
+
+  handle_t proc_handle = regs->ebx;
   auto flags = static_cast<process_info_flags_t>(regs->ecx);
   void *buffer = reinterpret_cast<void *>(regs->edx);
   size_t size = regs->esi;
 
-  if (flags & CURRENT_PROC) {
-    proc_handle = reinterpret_cast<handle_t>(&scheduler::GetCurrentTask());
-  } else if (!scheduler::IsRunningTask(
-                 reinterpret_cast<scheduler::Task *>(proc_handle))) {
+  scheduler::Task *task;
+  if (flags == PROC_CURRENT) {
+    task = reinterpret_cast<scheduler::Task *>(&scheduler::GetCurrentTask());
+  } else {
+    task = reinterpret_cast<scheduler::Task *>(proc_handle);
+    if (!scheduler::IsRunningTask(task)) {
+      regs->eax = K_INVALID_HANDLE;
+      return;
+    }
+  }
+
+  switch (flags) {
+    case PROC_CURRENT: {
+      handle_t this_task = reinterpret_cast<handle_t>(task);
+      regs->eax = TryCopy(&this_task, sizeof(handle_t), buffer, size);
+      regs->ebx = sizeof(handle_t);
+      break;
+    }
+    case PROC_PARENT: {
+      handle_t parent = reinterpret_cast<handle_t>(task->getParent());
+      regs->eax = TryCopy(&parent, sizeof(handle_t), buffer, size);
+      regs->ebx = sizeof(handle_t);
+      break;
+    }
+    case PROC_CHILDREN: {
+      std::vector<scheduler::Task *> children = task->getChildren();
+      static_assert(sizeof(scheduler::Task *) == sizeof(handle_t));
+      regs->eax = TryCopy(children.data(), children.size() * sizeof(handle_t),
+                          buffer, size);
+      regs->ebx = children.size() * sizeof(handle_t);
+      break;
+    }
+    default:
+      regs->eax = K_INVALID_ARG;
+      return;
+  }
+}
+
+// This is a blocking syscall that waits for a state on a process. If no signals
+// are provided, nothing happens (essentially making this a no-op).
+//
+// This accepts arguments via the following registers:
+//
+//   EBX - The handle to the process to start.
+//   ECX - The state to wait for. States include:
+//         TASK_READY - This task is en queue to run but hasn't started yet.
+//         TASK_RUNNING - This task has started running its code.
+//         TASK_TERMINATED - This task is being killed.
+//
+// This sets return values via the following registers:
+//
+//   EAX - The return status of this syscall.
+//
+void SYS_ProcessWait(isr::registers_t *regs) {
+  handle_t proc_handle = regs->ebx;
+  auto signals = static_cast<scheduler::Task::signal_t>(regs->ecx);
+  if (!signals) {
+    regs->eax = K_OK;
+    return;
+  }
+
+  auto *proc = reinterpret_cast<scheduler::Task *>(proc_handle);
+  if (!scheduler::IsRunningTask(proc)) {
     regs->eax = K_INVALID_HANDLE;
     return;
   }
-  auto *task = reinterpret_cast<scheduler::Task *>(proc_handle);
 
-  struct proc_info_t {
-    // The handle for the process specified.
-    handle_t handle;
-
-    // Parent process handle. Note that this will still return the parent
-    // handle even if the parent task has exited.
-    handle_t parent;
-  };
-  static_assert(sizeof(proc_info_t) == 8, "proc_info_t size changed!");
-
-  if (size < sizeof(proc_info_t)) {
-    regs->eax = K_BUFFER_TOO_SMALL;
-    return;
-  }
-
-  proc_info_t info{
-      .handle = reinterpret_cast<handle_t>(task),
-      .parent = reinterpret_cast<handle_t>(task->getParent()),
-  };
-  memcpy(buffer, &info, sizeof(proc_info_t));
-
+  scheduler::GetCurrentTask().WaitOn(*proc, signals);
   regs->eax = K_OK;
+  scheduler::Schedule(regs);
+  abort();
 }
 
 constexpr isr::handler_t kSyscallHandlers[] = {
     SYS_DebugWrite,    SYS_ProcessKill, SYS_AllocPage,    SYS_PageSize,
     SYS_ProcessCreate, SYS_MapPage,     SYS_ProcessStart, SYS_UnmapPage,
-    SYS_ProcessInfo,   SYS_DebugRead,
+    SYS_ProcessInfo,   SYS_DebugRead,   SYS_ProcessWait,
 };
 constexpr size_t kNumSyscalls =
     sizeof(kSyscallHandlers) / sizeof(isr::handler_t);

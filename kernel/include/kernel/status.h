@@ -24,6 +24,9 @@ enum kstatus_t {
 
   // Some read was unsuccessful.
   K_UNABLE_TO_READ = 7,
+
+  // Some argument was invalid.
+  K_INVALID_ARG = 8,
 };
 
 #endif  // KERNEL_INCLUDE_KERNEL_STATUS_H_

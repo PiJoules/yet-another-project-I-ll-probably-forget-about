@@ -61,4 +61,22 @@ kstatus_t DebugRead(char &c) {
   return status;
 }
 
+kstatus_t ProcessWait(handle_t proc, uint32_t signals) {
+  kstatus_t status;
+  asm volatile("int $0x80"
+               : "=a"(status)
+               : "0"(SYS_ProcessWait), "b"(proc), "c"(signals));
+  return status;
+}
+
+kstatus_t ProcessInfo(handle_t proc, uint32_t kind, void *dst,
+                      size_t buffer_size, size_t &written_or_needed) {
+  kstatus_t status;
+  asm volatile("int $0x80"
+               : "=a"(status), "=b"(written_or_needed)
+               : "0"(SYS_ProcessInfo), "1"(proc), "c"(kind), "d"(dst),
+                 "S"(buffer_size));
+  return status;
+}
+
 }  // namespace syscall

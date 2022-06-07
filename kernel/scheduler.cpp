@@ -2,6 +2,7 @@
 #include <kernel/gdt.h>
 #include <kernel/isr.h>
 #include <kernel/kmalloc.h>
+#include <kernel/linkedlist.h>
 #include <kernel/scheduler.h>
 #include <kernel/timer.h>
 #include <stddef.h>
@@ -28,16 +29,9 @@ struct jump_args_t;
 extern "C" void switch_task(scheduler::jump_args_t *);
 
 namespace scheduler {
-
 namespace {
 
-struct TaskNode {
-  TaskNode(Task *task, TaskNode *next) : task(task), next(next) {}
-
-  Task *task;
-  TaskNode *next;
-};
-
+using TaskNode = kern::LinkedList<Task *>;
 TaskNode *gTaskQueue = nullptr;
 Task *gKernelTask = nullptr;
 
@@ -87,12 +81,37 @@ void ValidateRegs(Task &task, const isr::registers_t &regs) {
     // is 16 or 32 bits. However, it does look like if we iret to a different
     // ring, the SS is a 32-bit pop and the high-order 16 bits are ignored.
     // So when we validate, it's ok to just check the bottom 16 bits.
-    // assert(SegmentRegisterValueIsValid(static_cast<uint16_t>(regs.ss)));
     assert(static_cast<uint16_t>(regs.ss) == 0x23);
   }
 }
 
+using iter_tasks_callback_t = void (*)(Task &t, void *arg);
+
+void IterateTasks(iter_tasks_callback_t callback, void *arg) {
+  assert(gTaskQueue);
+  TaskNode *node = gTaskQueue;
+  do { callback(*node->get(), arg); } while ((node = node->next()));
+}
+
 }  // namespace
+
+void Task::SendSignal(signal_t signals) {
+  for (const Task *listener : listening_for_signals_) {
+    Signals *signal = listener->GetSignal(*this);
+    if (!signal) continue;
+    signal_t &waiting_signals = signal->signals;
+    waiting_signals = static_cast<signal_t>(waiting_signals & ~signals);
+  }
+}
+
+void Task::WaitOn(Task &other_task, signal_t signals) {
+  assert(signals);
+  auto &waiting_on = GetOrCreateSignal(other_task);
+  signal_t &waiting_on_signals = waiting_on.signals;
+  waiting_on_signals = static_cast<signal_t>(waiting_on_signals | signals);
+
+  other_task.AddListener(*this);
+}
 
 void PrintPagesMappingPhysical(uintptr_t paddr) {
   TaskNode *node = gTaskQueue;
@@ -100,36 +119,57 @@ void PrintPagesMappingPhysical(uintptr_t paddr) {
   paddr = pmm::PageAddress(paddr);
   printf("Checking vaddrs mapping to paddr 0x%x\n", paddr);
   do {
-    printf("task %p\n", node->task);
-    const auto *pd = node->task->getPageDir().get();
+    printf("task %p\n", node->get());
+    const auto *pd = node->get()->getPageDir().get();
     for (size_t i = 0; i < pmm::kNumPageDirEntries; ++i) {
       if (pmm::PageAddress(pd[i]) == paddr) {
         printf("%u) 0x%x maps\n", i, pd[i]);
       }
     }
-  } while ((node = node->next));
+  } while ((node = node->next()));
 }
 
 void Schedule(isr::registers_t *regs) {
   if (regs) { ValidateRegs(GetCurrentTask(), *regs); }
 
   assert(gTaskQueue);
-  assert(gTaskQueue->task);
+  assert(gTaskQueue->get());
 
   // This is the only task in the queue (which should be the kernel).
   // In this case, just don't do anything.
-  if (!gTaskQueue->next) {
-    assert(gTaskQueue->task == gKernelTask);
+  if (!gTaskQueue->next()) {
+    assert(gTaskQueue->get() == gKernelTask);
     return;
   }
 
-  // Cycle throught the queue.
-  TaskNode *last_node = gTaskQueue->next;
-  while (last_node->next) last_node = last_node->next;
+  TaskNode *current_node = gTaskQueue;
+  Task *current_task = current_node->get();
+  TaskNode *next_node = gTaskQueue->next();
 
-  TaskNode *first_node = gTaskQueue;
-  Task *current_task = gTaskQueue->task;
-  Task *new_task = first_node->next->task;
+  // Keep cycling until we find a task not waiting on signals.
+  while (next_node && next_node->get()->hasSignals()) {
+    next_node = next_node->next();
+  }
+
+  // In this specific situation, we are switching from the main kernel task to
+  // some other task. However, all the other tasks we cycled through are waiting
+  // on signals from other tasks (deadlock). Technically we still have the main
+  // kernal task which can run, but it will just loop forever.
+  //
+  // TODO: See what the appropriate thing for the kernel to do in this
+  // situation.
+  if (!next_node && current_task == &GetMainKernelTask()) {
+    printf(
+        "WARN: All userspace tasks are waiting on signals and have "
+        "deadlocked!\n");
+    return;
+  }
+
+  assert(next_node &&
+         "If the current task is not the main kernel task, we should've found "
+         "at least one node that had an active task with no signals.");
+
+  Task *new_task = next_node->get();
 
   if (!current_task->isUser() && regs) {
     // If we interrupt in the middle of a kernel task, that means we at still
@@ -146,11 +186,9 @@ void Schedule(isr::registers_t *regs) {
   }
 
   if (regs) {
-    // Place the current task at the end of the queue.
-    last_node->next = first_node;
-    assert(new_task != gTaskQueue->task);
-    gTaskQueue = first_node->next;
-    first_node->next = nullptr;
+    // Update the queue such that it's now starting with the selected new
+    // thread.
+    while (gTaskQueue != next_node) gTaskQueue = gTaskQueue->Cycle();
     assert(gTaskQueue);
 
     // Save the registers into the current task.
@@ -158,14 +196,18 @@ void Schedule(isr::registers_t *regs) {
 
     KTRACE("jumping from current task %p @0x%x\n", current_task, regs->eip);
   } else {
-    gTaskQueue = first_node->next;
+    // First remove the current node from the queue, then update so the next
+    // node is at the front.
+    gTaskQueue = current_node->next();
+    while (gTaskQueue != next_node) gTaskQueue = gTaskQueue->Cycle();
     assert(gTaskQueue);
 
     KTRACE("DELETING task %p\n", current_task);
+    current_task->SendSignal(Task::kTerminated);
 
     // Delete the current task and its node.
     delete current_task;
-    delete first_node;
+    delete current_node;
   }
 
   KTRACE("SWITCH to %p @IP = 0x%x\n", new_task, new_task->getRegs().eip);
@@ -175,6 +217,10 @@ void Schedule(isr::registers_t *regs) {
 
   // Set the next kernel stack for the next interrupt.
   gdt::SetKernelStack(new_task->getKernelStackBase());
+
+  // Send the running signal.
+  // TODO: We only really need to send this on the very first run of this task.
+  new_task->SendSignal(Task::kRunning);
 
   // Switch the page directory.
   paging::SwitchPageDirectory(new_task->getPageDir());
@@ -232,20 +278,20 @@ void Initialize() {
 
 void Destroy() {
   assert(gTaskQueue);
-  assert(!gTaskQueue->next && "Expected only the kernel task to remain.");
+  assert(!gTaskQueue->next() && "Expected only the kernel task to remain.");
   delete gTaskQueue;
   delete gKernelTask;
+
+  // TODO: Destroy `gSignals`
 }
 
 void RegisterTask(Task &task) {
   assert(gTaskQueue);
-  TaskNode *last_node = gTaskQueue;
-  while (last_node->next) last_node = last_node->next;
-
-  last_node->next = new TaskNode(&task, /*next=*/nullptr);
+  gTaskQueue->Append(&task);
+  task.SendSignal(Task::kReady);
 }
 
-Task &GetCurrentTask() { return *gTaskQueue->task; }
+Task &GetCurrentTask() { return *gTaskQueue->get(); }
 Task &GetMainKernelTask() { return *gKernelTask; }
 
 bool Task::PageIsRecorded(uint32_t ppage) const {
@@ -288,9 +334,27 @@ bool IsRunningTask(Task *task) {
   assert(gTaskQueue);
   TaskNode *node = gTaskQueue;
   do {
-    if (node->task == task) return true;
-  } while ((node = node->next));
+    if (node->get() == task) return true;
+  } while ((node = node->next()));
   return false;
+}
+
+std::vector<Task *> Task::getChildren() const {
+  struct Args {
+    const Task *parent;
+    std::vector<Task *> children;
+  } args = {
+      .parent = this,
+  };
+  IterateTasks(
+      [](Task &task, void *arg) {
+        auto *args = reinterpret_cast<Args *>(arg);
+        if (task.getParent() == args->parent) {
+          args->children.push_back(&task);
+        }
+      },
+      &args);
+  return args.children;
 }
 
 }  // namespace scheduler

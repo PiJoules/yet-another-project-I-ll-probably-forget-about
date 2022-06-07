@@ -1,0 +1,6 @@
+#ifndef LIBC_INCLUDE_BITS_ALLTYPES_H_
+#define LIBC_INCLUDE_BITS_ALLTYPES_H_
+
+typedef int pid_t;
+
+#endif  // LIBC_INCLUDE_BITS_ALLTYPES_H_

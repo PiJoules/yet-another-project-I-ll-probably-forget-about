@@ -184,8 +184,8 @@ int main(int argc, char **argv) {
   //     haven't fully implemented something here. *should* means that "in an
   //     ideal world, it will be supported here and not elsewhere".
   printf("=== Userboot Stage 2 ===\n");
-  printf("argc: %d\n", argc);
-  printf("argv: %p\n", argv);
+  DEBUG_PRINT("argc: %d\n", argc);
+  DEBUG_PRINT("argv: %p\n", argv);
 
   // NOTE: This may be unaligned.
   // TODO: This should not be needed anymore since the global state has a page

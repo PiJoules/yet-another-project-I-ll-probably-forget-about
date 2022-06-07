@@ -11,6 +11,7 @@
 #define SYS_UnmapPage 7
 #define SYS_ProcessInfo 8
 #define SYS_DebugRead 9
+#define SYS_ProcessWait 10
 
 // AllocPage flags.
 #define ALLOC_ANON 0x1
@@ -19,6 +20,16 @@
 // MapPage flags.
 #define SWAP_OWNER 0x1
 #define MAP_ANON 0x2
+
+// Task info kinds.
+#define PROC_CURRENT 0
+#define PROC_PARENT 1
+#define PROC_CHILDREN 2
+
+// Task signals.
+#define TASK_READY 0x1
+#define TASK_RUNNING 0x2
+#define TASK_TERMINATED 0x4
 
 #ifndef ASM_FILE
 
@@ -38,6 +49,9 @@ kstatus_t MapPage(uintptr_t vaddr, handle_t other_proc, uintptr_t &other_vaddr,
 void ProcessStart(handle_t proc, uintptr_t entry, uint32_t arg = 0);
 void UnmapPage(uintptr_t page_addr);
 kstatus_t DebugRead(char &c);
+kstatus_t ProcessWait(handle_t proc, uint32_t signals);
+kstatus_t ProcessInfo(handle_t proc, uint32_t kind, void *dst,
+                      size_t buffer_size, size_t &written_or_needed);
 
 // This is an RAII-style object for either allocating or mapping a page upon
 // creation (in the current process), then unmapping it on destruction.
