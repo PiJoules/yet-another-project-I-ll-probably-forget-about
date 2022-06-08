@@ -103,19 +103,6 @@ class basic_string {
 
   size_type size() const { return length_; }
 
-  // TODO: Implement find.
-  /*!
-   *  @brief basic_string index of @a c.
-   *  @param[in] c A char literal.
-   *  @return The index of @a c in basic_string, if exists; -1 otherwise.
-   */
-  // int basic_string::index (char c) const
-  //{
-  //     for (unsigned j=0; j < length_; j++)
-  //         if (data_[j] == c) return (int)j;
-  //     return -1;
-  // }
-
   bool empty() const { return length_ == 0; }
 
   using iterator = ::std::iterator<pointer>;
@@ -166,8 +153,9 @@ class basic_string {
   }
 
   // Finds the first charavter `c`.
-  size_type find(value_type c) const {
-    for (auto it = begin(); it != end(); ++it) {
+  size_type find(value_type c, size_type pos = 0) const {
+    for (auto it = begin() + static_cast<typename iterator::difference_type>(pos);
+         it != end(); ++it) {
       if (*it == c) return static_cast<size_type>(it - begin());
     }
     return npos;

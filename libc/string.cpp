@@ -93,3 +93,27 @@ int memcmp(const void *lhs, const void *rhs, size_t size) {
   }
   return *v1 - *v2;
 }
+
+// Finds the first occurrence of the null-terminated byte string pointed to by
+// substr in the null-terminated byte string pointed to by str. The terminating
+// null characters are not compared.
+//
+// Pointer to the first character of the found substring in str, or a null
+// pointer if such substring is not found.
+char *strstr(const char *str, const char *substr) {
+  // If substr points to an empty string, str is returned.
+  if (!*substr) return const_cast<char *>(str);
+
+  for (size_t i = 0; str[i]; ++i) {
+    size_t j;
+    for (j = 0; str[i + j] && str[i + j] == substr[j]; ++j) {}
+    if (!substr[j]) return const_cast<char *>(str + i);
+  }
+  return nullptr;
+}
+
+const char *strchr(const char *src, int c) {
+  const char ch = static_cast<char>(c);
+  for (; *src && *src != ch; ++src) {}
+  return *src == ch ? const_cast<char *>(src) : nullptr;
+}

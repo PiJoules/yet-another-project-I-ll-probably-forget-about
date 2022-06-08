@@ -26,10 +26,6 @@ GlobalState *GetGlobalState();
 // and values into their own allocations in a dynamic container.
 class Envp {
  public:
-  void Add(const std::string &key, const std::string &val) {
-    envp_.emplace_back(key, val);
-  }
-
   size_t size() const { return envp_.size(); }
 
   // NOTE: This is modifiable, so if we expose this pointer to the various `env`
@@ -106,6 +102,10 @@ class Envp {
   }
 
  private:
+  void Add(const std::string &key, const std::string &val) {
+    envp_.emplace_back(key, val);
+  }
+
   struct EnvpPair {
     std::string key;
     std::string val;

@@ -43,6 +43,7 @@ void SetCurrentDir(const char *pwd) {
 }
 
 constexpr char kPWDEnv[] = "PWD";
+constexpr char kPATHEnv[] = "PATH";
 
 }  // namespace
 
@@ -126,6 +127,10 @@ extern "C" void __libc_start_main([[maybe_unused]] uint32_t arg) {
   // The current working dir points to the root dir, but if the `PWD` env
   // variable is set, then we can manually move to that dir.
   if (const char *pwd = getenv(kPWDEnv)) { SetCurrentDir(pwd); }
+
+  // Set the `PATH` if it's not already added.
+  std::string *path_env = gEnvp->getVal(kPATHEnv);
+  if (!path_env) { gEnvp->setVal(kPATHEnv, "/bin"); }
 
   // From here, we need to extract params from our process argument to
   // create argc and argv.

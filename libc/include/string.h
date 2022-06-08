@@ -15,6 +15,8 @@ int strncmp(const char *s1, const char *s2, size_t n);
 int memcmp(const void *lhs, const void *rhs, size_t);
 char *strncpy(char *dst, const char *src, size_t num);
 char *strcpy(char *dst, const char *src);
+char *strstr(const char *str, const char *substr);
+const char *strchr(const char *str, int ch);
 
 __END_CDECLS
 

@@ -58,7 +58,7 @@ void UnpackEnvp(char *const envp[], Envp &envp_vec) {
       continue;
     }
 
-    envp_vec.Add(entry.substr(0, found_sep), entry.substr(found_sep + 1));
+    envp_vec.setVal(entry.substr(0, found_sep), entry.substr(found_sep + 1));
 
     ++envp;
   }

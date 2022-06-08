@@ -15,6 +15,7 @@ void *aligned_alloc(size_t alignment, size_t size);
 
 int system(const char *cmd);
 char *getenv(const char *name);
+int setenv(const char *envname, const char *envval, int overwrite);
 
 __END_CDECLS
 

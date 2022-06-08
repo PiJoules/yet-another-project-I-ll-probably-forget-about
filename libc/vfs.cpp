@@ -121,7 +121,9 @@ class FileBuilder : public NodeBuilder<File, FileInfo> {
   FileBuilder(const FileInfo &info) : NodeBuilder(info) {}
 };
 
-VFSNode *GetNodeFromRelPathImpl(std::string &path, const Dir &cwd) {
+// NOTE: This will edit `path`, so any strings that need to be maintained
+// should pass a copy.
+VFSNode *GetNodeFromRelPathImpl(std::string &path, const Dir &search_path) {
   assert(!path.empty());
   assert(path[0] != kPathSep);
   assert(*path.end() != kPathSep);
@@ -129,14 +131,14 @@ VFSNode *GetNodeFromRelPathImpl(std::string &path, const Dir &cwd) {
   size_t path_sep_loc = path.find(kPathSep);
   if (path_sep_loc == std::string::npos) {
     // No more directories. Check if the CWD has this node.
-    return cwd.getNode(path);
+    return search_path.getNode(path);
   }
 
   // The current value up to the path separator is a dir.
   auto dirname = path.substr(0, path_sep_loc);
   path.erase(0, path_sep_loc + 1);
 
-  if (Dir *existing_dir = cwd.getDir(dirname)) {
+  if (Dir *existing_dir = search_path.getDir(dirname)) {
     // This directory exists. Do a recursive check.
     return GetNodeFromRelPathImpl(path, *existing_dir);
   }
@@ -145,10 +147,68 @@ VFSNode *GetNodeFromRelPathImpl(std::string &path, const Dir &cwd) {
   return nullptr;
 }
 
+VFSNode *GetNodeFromPathImpl(const std::string &path, bool search_path_env);
+
+Dir *GetDirFromPathEnv(const std::string &path) {
+  VFSNode *found_path = GetNodeFromPathImpl(path, /*search_path_env=*/false);
+  if (!found_path || !found_path->isDir()) return nullptr;
+  return static_cast<Dir *>(found_path);
+}
+
+class PathEnvIterator {
+ public:
+  static constexpr char kPathEnvSep = ':';
+
+  PathEnvIterator(const std::string &path) : path_(path), search_start_(0) {}
+
+  bool ReachedEnd() const { return search_start_ >= path_.size(); }
+
+  operator bool() const { return !ReachedEnd(); }
+
+  PathEnvIterator &operator++() {
+    if (!ReachedEnd()) search_start_ = path_.find(kPathEnvSep, search_start_);
+    return *this;
+  }
+
+  // TODO: Might be better to use a string_view here.
+  std::string operator*() const {
+    size_t next_path_idx = path_.find(kPathEnvSep, search_start_);
+    return path_.substr(search_start_, next_path_idx);
+  }
+
+ private:
+  const std::string &path_;
+  size_t search_start_;
+};
+
 // TODO: Account for parent directories.
-VFSNode *GetNodeFromRelPath(std::string path, const Dir *cwd) {
+// `search_path_env` prevents infinite recursion. From a higher level call, we
+// also want to check search directories for relative paths.
+//
+// `path` is pass by value because it's passed to `GetNodeFromRelPathImpl`
+// which should receive references to edit.
+VFSNode *GetNodeFromRelPath(std::string path, const Dir *cwd,
+                            bool search_path_env) {
   if (!cwd) return nullptr;
   CleanPath(path);
+
+  std::string *path_env;
+  if (search_path_env && (path_env = GetEnvp()->getVal("PATH"))) {
+    // Found the PATH.
+    PathEnvIterator iter(*path_env);
+    while (iter) {
+      std::string path_dir(*iter);
+      if (Dir *dir = GetDirFromPathEnv(path_dir)) {
+        // This path exists.
+        std::string path_cpy(path);
+        if (VFSNode *node = GetNodeFromRelPathImpl(path_cpy, *dir)) {
+          return node;
+        }
+      }
+      ++iter;
+    }
+  }
+
   return GetNodeFromRelPathImpl(path, *cwd);
 }
 
@@ -164,15 +224,19 @@ VFSNode *GetNodeFromAbsPath(std::string path) {
   assert(path[0] == kPathSep);
   path.erase(0, 1);
 
-  return GetNodeFromRelPathImpl(path, *root);
+  return GetNodeFromRelPath(path, root, /*search_path_env=*/false);
+}
+
+VFSNode *GetNodeFromPathImpl(const std::string &path, bool search_path_env) {
+  if (path.empty()) return nullptr;
+  if (IsAbsPath(path)) return GetNodeFromAbsPath(path);
+  return GetNodeFromRelPath(path, GetCurrentDir(), search_path_env);
 }
 
 }  // namespace
 
 VFSNode *GetNodeFromPath(const std::string &path) {
-  if (path.empty()) return nullptr;
-  if (IsAbsPath(path)) return GetNodeFromAbsPath(path);
-  return GetNodeFromRelPath(path, GetCurrentDir());
+  return GetNodeFromPathImpl(path, /*search_path_env=*/true);
 }
 
 bool IsAbsPath(const std::string &path) { return path[0] == kPathSep; }
