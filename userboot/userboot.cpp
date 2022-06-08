@@ -56,25 +56,20 @@ void FindAndRunRootElfExe(uintptr_t tar_start, const char *filename,
     DEBUG_PRINT("Attempting to run %s. Allocating page for executable.\n",
                 filename);
 
-    bool aligned = true;
     uintptr_t elf_data = reinterpret_cast<uintptr_t>(args.file.data);
     if (elf_data % ElfModule::kMinAlign != 0) {
       // The raw data is not aligned to what we want. There could be a more
       // space-efficient solution, but a simple one we could do is just
       // allocate an aligned buffer and copy over the data.
-      //
-      // TODO: Use std::unique_ptr.
-      elf_data = reinterpret_cast<uintptr_t>(
-          aligned_alloc(ElfModule::kMinAlign, args.file.size));
+      std::unique_ptr<char[]> aligned_elf_data(
+          new (std::align_val_t(ElfModule::kMinAlign)) char[args.file.size]);
       DEBUG_ASSERT(elf_data);
-      memcpy(reinterpret_cast<void *>(elf_data), args.file.data,
-             args.file.size);
-      aligned = false;
+      memcpy(aligned_elf_data.get(), args.file.data, args.file.size);
+      LoadElfProgram(reinterpret_cast<uintptr_t>(aligned_elf_data.get()),
+                     params, num_params, tar_start, tarsize, envp);
+    } else {
+      LoadElfProgram(elf_data, params, num_params, tar_start, tarsize, envp);
     }
-
-    LoadElfProgram(elf_data, params, num_params, tar_start, tarsize, envp);
-
-    if (!aligned) free(reinterpret_cast<void *>(elf_data));
   } else {
     DEBUG_PRINT("Unable to locate '%s'.", filename);
   }
