@@ -50,6 +50,10 @@ set(USER_CXX_FLAGS
   -fno-asynchronous-unwind-tables
 )
 
+# Expose some libc[xx] cmake variables for other subdirs to use.
+add_subdirectory(libc)
+add_subdirectory(libcxx)
+
 add_subdirectory(kernel)
 
 set(INITRD_NAME userboot.img)

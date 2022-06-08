@@ -4,7 +4,8 @@ add_executable(test-malloc
   ${CMAKE_SOURCE_DIR}/libc/tests/malloc.cpp)
 target_include_directories(test-malloc
   PRIVATE ${CMAKE_SOURCE_DIR}/libc/include
-  PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include)
+  PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include
+  PRIVATE ${CMAKE_SOURCE_DIR}/userboot/include)
 target_compile_options(test-malloc
   PRIVATE ${USER_CXX_FLAGS})
 target_link_libraries(test-malloc

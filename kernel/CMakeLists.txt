@@ -6,28 +6,29 @@ if(NOT DEFINED KERNEL)
 endif()
 set(KERNEL_DEBUG ${KERNEL}.debug)
 
+# This is an empty source file that can be used for libraries that are linked
+# together from other libs and contain no sources themselves.
+file(TOUCH ${CMAKE_BINARY_DIR}/null.cpp)
+
 # Build a libc for the kernel.
-file(GLOB LIBC_SOURCES "${CMAKE_SOURCE_DIR}/libc/*.cpp")
-add_library(kernel_libc STATIC ${LIBC_SOURCES})
+add_library(kernel_libc STATIC ${CMAKE_BINARY_DIR}/null.cpp)
 target_include_directories(kernel_libc
   PRIVATE ${CMAKE_SOURCE_DIR}/libc/include/
   PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
   PRIVATE include/)
 target_compile_options(kernel_libc PRIVATE ${KERNEL_CXX_FLAGS})
 target_compile_definitions(kernel_libc PRIVATE ${KERNEL_MACRO})
+target_link_libraries(kernel_libc PRIVATE common_libc_srcs)
 
 # Build a libc++ for the kernel.
-file(GLOB LIBCXX_SOURCES "${CMAKE_SOURCE_DIR}/libcxx/*.cpp")
-add_library(kernel_libcxx STATIC ${LIBCXX_SOURCES})
+add_library(kernel_libcxx STATIC ${CMAKE_BINARY_DIR}/null.cpp)
 target_include_directories(kernel_libcxx
   PRIVATE ${CMAKE_SOURCE_DIR}/libc/include/
   PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
   PRIVATE include/)
 target_compile_options(kernel_libcxx PRIVATE ${KERNEL_CXX_FLAGS})
 target_compile_definitions(kernel_libcxx PRIVATE ${KERNEL_MACRO})
-
-# Get all the files needed for testing.
-file(GLOB LIBC_TEST_SOURCES "${CMAKE_SOURCE_DIR}/libc/tests/*.cpp")
+target_link_libraries(kernel_libcxx PRIVATE common_libcxx_srcs)
 
 add_library(asm_objs STATIC boot.S gdt.S isr.S switchtask.S)
 target_include_directories(asm_objs PRIVATE include)
@@ -51,17 +52,14 @@ add_executable(${KERNEL_DEBUG}
   panic.cpp
   isr.cpp
   exceptions.cpp
-
-  # These are included for the kernel tests.
-  ${LIBC_TEST_SOURCES}
 )
+
 target_compile_options(${KERNEL_DEBUG} PRIVATE ${KERNEL_CXX_FLAGS})
 
 target_include_directories(${KERNEL_DEBUG}
   PRIVATE ${CMAKE_SOURCE_DIR}/libc/include/
   PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
   PRIVATE include/
-  PRIVATE ${CMAKE_SOURCE_DIR}/utils/include/
 )
 target_compile_definitions(${KERNEL_DEBUG} PRIVATE ${KERNEL_MACRO})
 target_link_options(${KERNEL_DEBUG}
@@ -70,13 +68,14 @@ target_link_options(${KERNEL_DEBUG}
   PRIVATE -nostdlib
   PRIVATE -Wl,-no-pie)
 target_link_libraries(${KERNEL_DEBUG}
-  -Wl,--start-group
-  -Wl,--whole-archive
-  asm_objs
-  kernel_libc
-  kernel_libcxx
-  -Wl,--no-whole-archive
-  -Wl,--end-group)
+  PRIVATE -Wl,--start-group
+  PRIVATE -Wl,--whole-archive
+  PRIVATE asm_objs
+  PRIVATE kernel_libc
+  PRIVATE kernel_libcxx
+  PRIVATE common_libc_test_srcs
+  PRIVATE -Wl,--no-whole-archive
+  PRIVATE -Wl,--end-group)
 
 # Creates the stripped version without debuginfo.
 add_custom_target(${KERNEL} ALL

@@ -8,57 +8,60 @@ target_include_directories(system_lib
   PRIVATE ${CMAKE_SOURCE_DIR}/libc/include/
   PRIVATE include/)
 
+# This is an empty source file that can be used for libraries that are linked
+# together from other libs and contain no sources themselves.
+file(TOUCH ${CMAKE_BINARY_DIR}/null.cpp)
+
 # Build a libc for userspace. This implicitly includes the system library, so
 # targets that depend on this statically do not need to depend on the system
 # lib statically. Ideally, this should be the only dependency any static
 # executable would need for building a standalone ELF binary.
-#
-# TODO: Might be easier to just have a cmake file under `libc/` that defines
-# a variable (or target) we can use that just contains the sources so we don't
-# have to resort to globbing.
-file(GLOB LIBC_SOURCES
-  "${CMAKE_SOURCE_DIR}/libc/*.cpp"
-  "${CMAKE_SOURCE_DIR}/libc/*.S")
-add_library(user_libc STATIC ${LIBC_SOURCES})
+add_library(user_libc STATIC ${CMAKE_BINARY_DIR}/null.cpp)
 target_include_directories(user_libc
   PRIVATE ${CMAKE_SOURCE_DIR}/libc/include/
   PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
   PRIVATE include/)
 target_compile_options(user_libc PRIVATE ${USER_CXX_FLAGS})
 target_link_libraries(user_libc PRIVATE system_lib)
+target_link_libraries(user_libc PUBLIC user_libc_srcs)
 
-file(GLOB LIBCXX_SOURCES
-  "${CMAKE_SOURCE_DIR}/libcxx/*.cpp")
-add_library(user_libcxx STATIC ${LIBCXX_SOURCES})
+add_library(user_libcxx STATIC ${CMAKE_BINARY_DIR}/null.cpp)
 target_include_directories(user_libcxx
   PRIVATE ${CMAKE_SOURCE_DIR}/libc/include/
   PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
   PRIVATE include/)
 target_compile_options(user_libcxx PRIVATE ${USER_CXX_FLAGS})
-target_link_libraries(user_libcxx PRIVATE system_lib)
+target_link_libraries(user_libcxx
+  PRIVATE system_lib
+  PRIVATE common_libcxx_srcs)
 
 # This is a special userboot libc that *only* the stage 1 userboot uses. The
 # only reason this is here is so __libc_start_main doesn't need to dynamically
 # detect if it should unpack `argc` and `argv` from it's sole argument. Stage 1
 # is special in that the kernel doesn't pass any meaninful information for its
 # argument, so userboot stage 1 shouldn't do anything with it.
-add_library(userboot_stage1_libc STATIC ${LIBC_SOURCES})
+add_library(userboot_stage1_libc STATIC ${CMAKE_BINARY_DIR}/null.cpp)
 target_include_directories(userboot_stage1_libc
   PRIVATE ${CMAKE_SOURCE_DIR}/libc/include/
   PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
   PRIVATE include/)
 target_compile_options(userboot_stage1_libc PRIVATE ${USER_CXX_FLAGS})
-target_link_libraries(userboot_stage1_libc PRIVATE system_lib)
 target_compile_definitions(userboot_stage1_libc PRIVATE __USERBOOT_STAGE1__)
+target_link_libraries(userboot_stage1_libc
+  PRIVATE system_libc
+  PRIVATE user_libc_srcs
+  PRIVATE common_libc_srcs)
 
-add_library(userboot_stage1_libcxx STATIC ${LIBCXX_SOURCES})
+add_library(userboot_stage1_libcxx STATIC ${CMAKE_BINARY_DIR}/null.cpp)
 target_include_directories(userboot_stage1_libcxx
   PRIVATE ${CMAKE_SOURCE_DIR}/libc/include/
   PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
   PRIVATE include/)
 target_compile_options(userboot_stage1_libcxx PRIVATE ${USER_CXX_FLAGS})
-target_link_libraries(userboot_stage1_libcxx PRIVATE system_lib)
 target_compile_definitions(userboot_stage1_libcxx PRIVATE __USERBOOT_STAGE1__)
+target_link_libraries(userboot_stage1_libcxx
+  PRIVATE system_lib
+  PRIVATE common_libcxx_srcs)
 
 # This is the actual userboot binary. We construct it as a static library because
 # we link it manyally with a linker script.
@@ -116,6 +119,7 @@ endfunction()
 add_executable(test-hello hello.cpp)
 target_include_directories(test-hello
   PRIVATE ${CMAKE_SOURCE_DIR}/libc/include
+  PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include
   PRIVATE include)
 target_compile_options(test-hello
   PRIVATE ${USER_CXX_FLAGS})
