@@ -1,5 +1,3 @@
-#ifndef __KERNEL__
-
 #include <errno.h>
 #include <libc/startup/globalstate.h>
 #include <libc/startup/vfs.h>
@@ -22,5 +20,3 @@ int chdir(const char *path) {
 
   return 0;
 }
-
-#endif  // __KERNEL__

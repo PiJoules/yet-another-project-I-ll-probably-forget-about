@@ -1,5 +1,3 @@
-#if !defined(__KERNEL__) && !defined(__USERBOOT_STAGE1__)
-
 #include <errno.h>
 #include <libc/elf/elf.h>
 #include <libc/startup/globalstate.h>
@@ -57,5 +55,3 @@ int execve(const char *path, char *const argv[], char *const envp[]) {
   libc::startup::UnpackEnvp(envp, _envp);
   return ExecImpl(path, argv, _envp);
 }
-
-#endif  // !defined(__KERNEL__) && !defined(__USERBOOT_STAGE1__)

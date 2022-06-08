@@ -1,5 +1,3 @@
-#ifndef __KERNEL__
-
 #define LOCAL_DEBUG_LVL 0
 
 #include <assert.h>
@@ -66,5 +64,3 @@ pid_t wait(int *) {
 
   return 0;
 }
-
-#endif  // __KERNEL__

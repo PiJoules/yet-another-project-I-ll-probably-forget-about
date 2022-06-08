@@ -1,5 +1,3 @@
-#ifndef __KERNEL__
-
 #include <dirent.h>
 #include <libc/startup/globalstate.h>
 #include <libc/startup/vfs.h>
@@ -47,5 +45,3 @@ dirent *readdir(DIR *dirp) {
 void closedir(DIR *dirp) {
   if (dirp) { delete dirp; }
 }
-
-#endif  // __KERNEL__

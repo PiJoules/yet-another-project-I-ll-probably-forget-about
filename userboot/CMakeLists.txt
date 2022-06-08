@@ -22,8 +22,9 @@ target_include_directories(user_libc
   PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
   PRIVATE include/)
 target_compile_options(user_libc PRIVATE ${USER_CXX_FLAGS})
-target_link_libraries(user_libc PRIVATE system_lib)
-target_link_libraries(user_libc PUBLIC user_libc_srcs)
+target_link_libraries(user_libc
+  PRIVATE system_lib
+  PRIVATE user_libc_srcs)
 
 add_library(user_libcxx STATIC ${CMAKE_BINARY_DIR}/null.cpp)
 target_include_directories(user_libcxx
@@ -96,6 +97,7 @@ function(add_userboot_binary name extra_link_flags extra_deps)
             $<TARGET_FILE:system_lib>
 
             --end-group
+    # TODO: We should add some command here for asserting the file is not empty.
     COMMENT "Linking ${name}"
     DEPENDS system_lib userboot_lib user_libc ${extra_deps}
     VERBATIM)

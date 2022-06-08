@@ -1,7 +1,3 @@
-// Add this here because we add all libc sources via globbing. Rather than
-// messing with that, we'll just wrap this in a guard.
-#ifndef __KERNEL__
-
 #define LOCAL_DEBUG_LVL 0
 
 #include <assert.h>
@@ -143,5 +139,3 @@ extern "C" void __libc_start_main([[maybe_unused]] uint32_t arg) {
   main(argc, argv);
 #endif
 }
-
-#endif  // __KERNEL__

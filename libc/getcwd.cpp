@@ -1,5 +1,3 @@
-#if !defined(__KERNEL__) && !defined(__USERBOOT_STAGE1__)
-
 #include <errno.h>
 #include <libc/startup/globalstate.h>
 #include <libc/startup/vfs.h>
@@ -30,5 +28,3 @@ char *getcwd(char *buf, size_t size) {
   buf[cpysize] = 0;
   return buf;
 }
-
-#endif  // !defined(__KERNEL__) && !defined(__USERBOOT_STAGE1__)

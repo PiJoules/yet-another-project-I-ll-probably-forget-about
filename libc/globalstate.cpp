@@ -1,5 +1,3 @@
-#ifndef __KERNEL__
-
 #include <assert.h>
 #include <libc/startup/globalstate.h>
 #include <stdio.h>
@@ -66,5 +64,3 @@ void UnpackEnvp(char *const envp[], Envp &envp_vec) {
 
 }  // namespace startup
 }  // namespace libc
-
-#endif  // __KERNEL__

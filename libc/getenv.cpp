@@ -1,5 +1,3 @@
-#ifndef __KERNEL__
-
 #include <errno.h>
 #include <libc/startup/globalstate.h>
 #include <stdlib.h>
@@ -43,5 +41,3 @@ int setenv(const char *envname, const char *envval, int overwrite) {
   envp->setVal(envname, envval);
   return 0;
 }
-
-#endif  // __KERNEL__

@@ -1,5 +1,3 @@
-#ifndef __KERNEL__
-
 #include <assert.h>
 #include <libc/startup/startparams.h>
 #include <stdint.h>
@@ -94,5 +92,3 @@ void UnpackParams(uintptr_t params_addr, int &argc, char **&argv) {
 
 }  // namespace startup
 }  // namespace libc
-
-#endif  // __KERNEL__

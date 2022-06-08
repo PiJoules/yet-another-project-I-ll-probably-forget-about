@@ -1,5 +1,3 @@
-#ifndef __KERNEL__
-
 #define LOCAL_DEBUG_LVL 0
 
 #include <ctype.h>
@@ -324,5 +322,3 @@ std::string VFSNode::getAbsPath() const {
 
 }  // namespace startup
 }  // namespace libc
-
-#endif  // __KERNEL__

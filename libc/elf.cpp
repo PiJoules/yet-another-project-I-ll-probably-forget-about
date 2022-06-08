@@ -1,5 +1,3 @@
-#ifndef __KERNEL__
-
 #define LOCAL_DEBUG_LVL 0
 
 #include <assert.h>
@@ -226,5 +224,3 @@ void LoadElfProgram(uintptr_t elf_data, const libc::startup::ArgvParam *params,
 
 }  // namespace elf
 }  // namespace libc
-
-#endif  // __KERNEL__
