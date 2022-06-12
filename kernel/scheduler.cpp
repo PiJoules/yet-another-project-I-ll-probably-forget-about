@@ -4,6 +4,7 @@
 #include <kernel/kmalloc.h>
 #include <kernel/linkedlist.h>
 #include <kernel/scheduler.h>
+#include <kernel/status.h>
 #include <kernel/timer.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -95,22 +96,38 @@ void IterateTasks(iter_tasks_callback_t callback, void *arg) {
 
 }  // namespace
 
-void Task::SendSignal(signal_t signals) {
+void Task::SendSignal(signal_t signals, uint32_t value) {
+  assert(signals);
   for (const Task *listener : listening_for_signals_) {
     Signals *signal = listener->GetSignal(*this);
-    if (!signal) continue;
-    signal_t &waiting_signals = signal->signals;
-    waiting_signals = static_cast<signal_t>(waiting_signals & ~signals);
+    if (signal && (signal->expecting_signals & signals)) {
+      signal->received_signal = signals;
+      signal->value = value;
+    }
   }
 }
 
 void Task::WaitOn(Task &other_task, signal_t signals) {
   assert(signals);
   auto &waiting_on = GetOrCreateSignal(other_task);
-  signal_t &waiting_on_signals = waiting_on.signals;
+  signal_t &waiting_on_signals = waiting_on.expecting_signals;
   waiting_on_signals = static_cast<signal_t>(waiting_on_signals | signals);
 
   other_task.AddListener(*this);
+}
+
+void Task::RemoveSignal(const Task *task) {
+  auto it = waiting_on_signals_.begin();
+  const auto end = waiting_on_signals_.end();
+  while (it != end) {
+    if ((*it).task == task) {
+      waiting_on_signals_.erase(it);
+      return;
+    }
+    ++it;
+  }
+  printf("COULDN'T FIND TASK %p THAT TASK %p WAS WAITING ON\n", task, this);
+  __builtin_trap();
 }
 
 void PrintPagesMappingPhysical(uintptr_t paddr) {
@@ -129,7 +146,7 @@ void PrintPagesMappingPhysical(uintptr_t paddr) {
   } while ((node = node->next()));
 }
 
-void Schedule(isr::registers_t *regs) {
+void Schedule(isr::registers_t *regs, uint32_t retval) {
   if (regs) { ValidateRegs(GetCurrentTask(), *regs); }
 
   assert(gTaskQueue);
@@ -147,7 +164,7 @@ void Schedule(isr::registers_t *regs) {
   TaskNode *next_node = gTaskQueue->next();
 
   // Keep cycling until we find a task not waiting on signals.
-  while (next_node && next_node->get()->hasSignals()) {
+  while (next_node && !next_node->get()->canRunTask()) {
     next_node = next_node->next();
   }
 
@@ -203,7 +220,7 @@ void Schedule(isr::registers_t *regs) {
     assert(gTaskQueue);
 
     KTRACE("DELETING task %p\n", current_task);
-    current_task->SendSignal(Task::kTerminated);
+    current_task->SendSignal(Task::kTerminated, retval);
 
     // Delete the current task and its node.
     delete current_task;
@@ -211,6 +228,23 @@ void Schedule(isr::registers_t *regs) {
   }
 
   KTRACE("SWITCH to %p @IP = 0x%x\n", new_task, new_task->getRegs().eip);
+
+  if (new_task->isWaitingOnSignal()) {
+    uint32_t signal_val;
+    const Task *sending_task;
+    if (Task::signal_t received_signal =
+            new_task->getReceivedSignal(&signal_val, &sending_task)) {
+      // This task came from the ProcessWait syscall.
+      if (new_task->isUser()) { assert(new_task->getRegs().eax == K_OK); }
+
+      new_task->getSignalReceivedReg() = received_signal;
+      new_task->getSignalValReg() = signal_val;
+
+      // Now that we've received a signal from a task we were waiting on, remove
+      // it.
+      new_task->RemoveSignal(sending_task);
+    }
+  }
 
   // Load the new registers as our arguments.
   ValidateRegs(*new_task, new_task->getRegs());
@@ -220,7 +254,7 @@ void Schedule(isr::registers_t *regs) {
 
   // Send the running signal.
   // TODO: We only really need to send this on the very first run of this task.
-  new_task->SendSignal(Task::kRunning);
+  new_task->SendSignal(Task::kRunning, /*value=*/0);
 
   // Switch the page directory.
   paging::SwitchPageDirectory(new_task->getPageDir());
@@ -273,7 +307,8 @@ void Initialize() {
   gdt::SetKernelStack(gKernelTask->getKernelStackBase());
   gTaskQueue = new TaskNode(gKernelTask, /*next=*/nullptr);
 
-  timer::RegisterTimerCallback(0, Schedule);
+  timer::RegisterTimerCallback(
+      0, [](isr::registers_t *regs) { return Schedule(regs, /*retval=*/0); });
 }
 
 void Destroy() {
@@ -288,7 +323,7 @@ void Destroy() {
 void RegisterTask(Task &task) {
   assert(gTaskQueue);
   gTaskQueue->Append(&task);
-  task.SendSignal(Task::kReady);
+  task.SendSignal(Task::kReady, /*retval=*/0);
 }
 
 Task &GetCurrentTask() { return *gTaskQueue->get(); }

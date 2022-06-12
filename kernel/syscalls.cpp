@@ -46,9 +46,17 @@ void SYS_DebugRead(isr::registers_t *regs) {
   regs->eax = success ? K_OK : K_UNABLE_TO_READ;
 }
 
-void SYS_ProcessKill(isr::registers_t *) {
-  KTRACE("killing %p\n", &scheduler::GetCurrentTask());
-  scheduler::Schedule(/*regs=*/nullptr);
+// Stop a process and pass a return value. This accepts arguments via the
+// following registers:
+//
+//   EBX - The return value. Tasks waiting on a TASK_TERMINATED signal will
+//         received this value.
+//
+void SYS_ProcessKill(isr::registers_t *regs) {
+  uint32_t retval = regs->ebx;
+  KTRACE("killing %p with return value 0x%x\n", &scheduler::GetCurrentTask(),
+         retval);
+  scheduler::Schedule(/*regs=*/nullptr, retval);
   abort();
 }
 
@@ -381,6 +389,8 @@ void SYS_ProcessInfo(isr::registers_t *regs) {
 // This sets return values via the following registers:
 //
 //   EAX - The return status of this syscall.
+//   EBX - The signal that we received.
+//   ECX - A return value associated with this signal.
 //
 void SYS_ProcessWait(isr::registers_t *regs) {
   handle_t proc_handle = regs->ebx;
@@ -398,7 +408,11 @@ void SYS_ProcessWait(isr::registers_t *regs) {
 
   scheduler::GetCurrentTask().WaitOn(*proc, signals);
   regs->eax = K_OK;
-  scheduler::Schedule(regs);
+
+  // The next time we enter back into this task, it will be when we schedule
+  // back into it after a signal has been received. The signal value will be
+  // set there.
+  scheduler::Schedule(regs, /*retval=*/0);
   abort();
 }
 

@@ -35,7 +35,33 @@ class vector {
 
   /* -------- ITERATORS --------*/
 
-  class iterator;
+  class iterator {
+   public:
+    iterator(T* p) : _curr(p) {}
+
+    iterator& operator++() {
+      _curr++;
+      return *this;
+    }
+
+    iterator& operator--() {
+      _curr--;
+      return *this;
+    }
+
+    int32_t operator-(const iterator &other) const {
+      return _curr - other._curr;
+    }
+
+    T& operator*() { return *_curr; }
+
+    bool operator==(const iterator& b) const { return _curr == b._curr; }
+
+    bool operator!=(const iterator& b) const { return _curr != b._curr; }
+
+   private:
+    T* _curr;
+  };
 
   iterator begin();
 
@@ -82,7 +108,34 @@ class vector {
 
   // Removes all elements from the vector
   // Capacity is not changed.
-  void clear();
+  void clear() {
+    for (size_type i = 0; i < size(); ++i) {
+      _elements[i].~T();
+    }
+  }
+
+  constexpr iterator erase(iterator pos) {
+    auto it = begin();
+    auto e = end();
+
+    for (; it != e; ++it) {
+      if (it == pos) {
+        size_t i = static_cast<size_t>(it - begin());
+        _elements[i].~T();
+
+        // Shift all the other elements.
+        for (size_t j = i + 1; j < _size; ++j, ++i) {
+          // TODO: Confirm if this is the right thing to do.
+          new (&_elements[i]) T(std::move(_elements[j]));
+        }
+
+        --_size;
+        return ++it;
+      }
+    }
+
+    return e;
+  }
 
   // Inserts element at the back
   void push_back(const T& d);
@@ -150,31 +203,6 @@ class vector {
   T* _elements;      // Pointer to first element of vector
   size_type _space;  // Total space used by vector including
                      // elements and free space.
-};
-
-template <class T>
-class vector<T>::iterator {
- public:
-  iterator(T* p) : _curr(p) {}
-
-  iterator& operator++() {
-    _curr++;
-    return *this;
-  }
-
-  iterator& operator--() {
-    _curr--;
-    return *this;
-  }
-
-  T& operator*() { return *_curr; }
-
-  bool operator==(const iterator& b) const { return _curr == b._curr; }
-
-  bool operator!=(const iterator& b) const { return _curr != b._curr; }
-
- private:
-  T* _curr;
 };
 
 // Constructors/Destructor

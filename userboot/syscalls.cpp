@@ -12,6 +12,10 @@ void DebugWrite(const char *str) {
       "r"((uint32_t)str));
 }
 
+void ProcessKill(uint32_t retval) {
+  asm volatile("int $0x80" ::"a"(SYS_ProcessKill), "b"(retval));
+}
+
 kstatus_t AllocPage(uintptr_t &page_addr, handle_t proc_handle,
                     uint32_t flags) {
   kstatus_t status;
@@ -61,11 +65,12 @@ kstatus_t DebugRead(char &c) {
   return status;
 }
 
-kstatus_t ProcessWait(handle_t proc, uint32_t signals) {
+kstatus_t ProcessWait(handle_t proc, uint32_t signals,
+                      uint32_t &received_signal, uint32_t &signal_val) {
   kstatus_t status;
   asm volatile("int $0x80"
-               : "=a"(status)
-               : "0"(SYS_ProcessWait), "b"(proc), "c"(signals));
+               : "=a"(status), "=b"(received_signal), "=c"(signal_val)
+               : "0"(SYS_ProcessWait), "1"(proc), "2"(signals));
   return status;
 }
 

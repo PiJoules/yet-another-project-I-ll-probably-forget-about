@@ -9,10 +9,7 @@
 
 using syscall::handle_t;
 
-// TODO: While the kernel doesn't support process return codes, what we can do
-// is abstract this out such that we have some kind of IPC where the running
-// child process returns some sort of return code that this parent accepts here.
-pid_t wait(int *) {
+pid_t wait(int *res) {
   // Get the current task handle.
   handle_t this_handle;
   size_t written_or_needed;
@@ -59,8 +56,12 @@ pid_t wait(int *) {
   // children, but it doesn't matter which one we wait on, so just pick the
   // first one. NOTE: A return status of `K_INVALID_HANDLE` means the child is
   // no longer running.
-  status = syscall::ProcessWait(children[0], TASK_TERMINATED);
+  uint32_t received_signal, signal_val;
+  status = syscall::ProcessWait(children[0], TASK_TERMINATED, received_signal,
+                                signal_val);
   DEBUG_ASSERT(status == K_OK || status == K_INVALID_HANDLE);
+  DEBUG_ASSERT(received_signal == TASK_TERMINATED);
+  if (res) *res = static_cast<int>(signal_val);
 
   return 0;
 }

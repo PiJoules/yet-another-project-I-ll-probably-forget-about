@@ -35,6 +35,8 @@ _start:
 
 1:
   // Call the task exit syscall and wait.
+  // Set the return value.
+  mov %eax, %ebx
   mov $SYS_ProcessKill, %eax
   int $0x80
   jmp .

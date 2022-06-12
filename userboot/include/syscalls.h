@@ -41,6 +41,7 @@ namespace syscall {
 using handle_t = uint32_t;
 
 void DebugWrite(const char *str);
+void ProcessKill(uint32_t retval);
 kstatus_t AllocPage(uintptr_t &vaddr, handle_t proc_handle, uint32_t flags);
 size_t PageSize();
 kstatus_t ProcessCreate(handle_t &proc_handle);
@@ -49,7 +50,8 @@ kstatus_t MapPage(uintptr_t vaddr, handle_t other_proc, uintptr_t &other_vaddr,
 void ProcessStart(handle_t proc, uintptr_t entry, uint32_t arg = 0);
 void UnmapPage(uintptr_t page_addr);
 kstatus_t DebugRead(char &c);
-kstatus_t ProcessWait(handle_t proc, uint32_t signals);
+kstatus_t ProcessWait(handle_t proc, uint32_t signals,
+                      uint32_t &received_signal, uint32_t &signal_val);
 kstatus_t ProcessInfo(handle_t proc, uint32_t kind, void *dst,
                       size_t buffer_size, size_t &written_or_needed);
 

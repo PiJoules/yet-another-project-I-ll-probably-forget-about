@@ -66,7 +66,7 @@ void SetCurrentDir(Dir *wd) {
 // regular ELF program), this contains a pointer to the `GlobalState` for this
 // process which contains any information needed for a functional libc
 // environment (`main` arguments, file system, working dir, etc).
-extern "C" void __libc_start_main([[maybe_unused]] uint32_t arg) {
+extern "C" int __libc_start_main([[maybe_unused]] uint32_t arg) {
   // Allocate one page for `malloc` to use.
   uintptr_t malloc_page;
   kstatus_t status = syscall::AllocPage(malloc_page, /*proc_handle=*/0,
@@ -101,7 +101,7 @@ extern "C" void __libc_start_main([[maybe_unused]] uint32_t arg) {
 #ifdef __USERBOOT_STAGE1__
   // NOTE: argc and argv are meaningless here since we jumped directly from the
   // kernel, so we can ignore them here.
-  main(/*argc=*/0, /*argv=*/nullptr);
+  return main(/*argc=*/0, /*argv=*/nullptr);
 #else
   assert(arg % alignof(libc::startup::GlobalState) == 0);
   gGlobalState = reinterpret_cast<libc::startup::GlobalState *>(arg);
@@ -136,6 +136,6 @@ extern "C" void __libc_start_main([[maybe_unused]] uint32_t arg) {
 
   if (!gGlobalFs) { printf("WARN: Virtual filesystem not available!\n"); }
 
-  main(argc, argv);
+  return main(argc, argv);
 #endif
 }

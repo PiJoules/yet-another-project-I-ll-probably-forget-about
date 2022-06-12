@@ -47,6 +47,20 @@ class Task {
 #error "What arch?"
 #endif
   }
+  uint32_t &getSignalReceivedReg() {
+#if defined(__i386__)
+    return regs_.ebx;
+#else
+#error "What arch?"
+#endif
+  }
+  uint32_t &getSignalValReg() {
+#if defined(__i386__)
+    return regs_.ecx;
+#else
+#error "What arch?"
+#endif
+  }
   const isr::registers_t &getRegs() const { return regs_; }
   uintptr_t getKernelStackBase() const;
   paging::PageDirectory4M &getPageDir() const { return *pd_; }
@@ -59,26 +73,63 @@ class Task {
 
   // Wait for a signal from another task.
   void WaitOn(Task &other_task, signal_t signals);
-  bool hasSignals() const {
-    // TODO: We check like this rather than just seeing if `waiting_on_signals_`
-    // is empty because it's easier than removing signals after they're sent.
-    // Once we have better containers, come back here and update this.
-    for (Signals &signals : waiting_on_signals_) {
-      if (signals.signals) return true;
+
+  // Return true if any of the signals this task is waiting on have not been
+  // handled.
+  bool isWaitingOnSignal() const { return !waiting_on_signals_.empty(); }
+
+  // If this task was waiting on a signal but has received a signal from one
+  // of the tasks it was listening to, return that signal (which will be
+  // non-zero) and value sent with it. If multiple signals were received, this
+  // will return any one of them (no order is guaranteed).
+  //
+  // If this task was not waiting on a signal, return 0.
+  signal_t getReceivedSignal(uint32_t *value = nullptr,
+                             const Task **task = nullptr) const {
+    for (Signals &signal : waiting_on_signals_) {
+      if (signal.received_signal) {
+        if (value) *value = signal.value;
+        if (task) *task = signal.task;
+        return signal.received_signal;
+      }
     }
-    return false;
+    return signal_t(0);
   }
-  void SendSignal(signal_t signal);
+
+  // This task can *not* run if:
+  // - It is waiting on signals, none of which has been received yet.
+  bool canRunTask() const {
+    if (isWaitingOnSignal()) {
+      if (!getReceivedSignal(/*value=*/nullptr)) { return false; }
+    }
+    return true;
+  }
+
+  void SendSignal(signal_t signal, uint32_t value);
+
+  void RemoveSignal(const Task *task);
 
  private:
   friend void Initialize();
 
   struct Signals {
+    // The other task this task is expecting a signal from.
     const Task *task;
-    signal_t signals;
 
-    Signals(const Task *task, signal_t signals)
-        : task(task), signals(signals) {}
+    // The type of the signal.
+    signal_t expecting_signals;
+
+    // The signal value sent.
+    uint32_t value;
+
+    // The signal this task recevied.
+    signal_t received_signal;
+
+    Signals(const Task *task, signal_t signals, uint32_t value)
+        : task(task),
+          expecting_signals(signals),
+          value(value),
+          received_signal(signal_t(0)) {}
   };
 
   // This is used by the kernel for initializing the main kernel task.
@@ -96,7 +147,8 @@ class Task {
   Signals &GetOrCreateSignal(const Task &other) {
     Signals *expected = GetSignal(other);
     if (expected) return *expected;
-    waiting_on_signals_.emplace_back(&other, /*signals=*/signal_t(0));
+    waiting_on_signals_.emplace_back(&other, /*signals=*/signal_t(0),
+                                     /*value=*/0u);
     return waiting_on_signals_.back();
   }
 
@@ -143,7 +195,7 @@ bool IsRunningTask(Task *);
 // one.
 // FIXME: Would be better to abstract this such that its parameter is the next
 // task to schedule.
-void Schedule(isr::registers_t *regs);
+void Schedule(isr::registers_t *regs, uint32_t retval);
 
 void PrintPagesMappingPhysical(uintptr_t paddr);
 
