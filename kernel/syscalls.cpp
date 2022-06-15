@@ -424,6 +424,8 @@ constexpr isr::handler_t kSyscallHandlers[] = {
 constexpr size_t kNumSyscalls =
     sizeof(kSyscallHandlers) / sizeof(isr::handler_t);
 
+}  // namespace
+
 void SyscallHandler(isr::registers_t *regs) {
   if (regs->eax < kNumSyscalls && kSyscallHandlers[regs->eax]) {
     isr::handler_t handler = kSyscallHandlers[regs->eax];
@@ -433,9 +435,5 @@ void SyscallHandler(isr::registers_t *regs) {
     abort();  // TODO: Handle gracefully.
   }
 }
-
-}  // namespace
-
-void Initialize() { isr::RegisterHandler(kSyscallHandler, SyscallHandler); }
 
 }  // namespace syscalls

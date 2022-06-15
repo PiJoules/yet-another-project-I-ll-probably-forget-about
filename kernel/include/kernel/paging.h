@@ -2,6 +2,7 @@
 #define KERNEL_INCLUDE_KERNEL_PAGING_H_
 
 #include <assert.h>
+#include <kernel/isr.h>
 #include <kernel/pmm.h>
 #include <stdint.h>
 #include <string.h>
@@ -87,6 +88,7 @@ PageDirectory4M &GetKernelPageDirectory();
 void SwitchPageDirectory(PageDirectory4M &pd);
 
 void InspectPhysicalMem(uintptr_t pstart, uintptr_t pend);
+void PageFaultHandler(isr::registers_t *regs);
 
 }  // namespace paging
 

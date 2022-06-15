@@ -15,7 +15,7 @@ namespace {
 
 constexpr uint8_t kDPLUser = 0x60;
 
-handler_t IsrHandlers[256];
+handler_t gIsrHandlers[kNumIsrHandlers];
 
 const char* exception_msgs[] = {
     "Division By Zero",
@@ -100,29 +100,10 @@ extern void isr128();
 void isr_handler(isr::registers_t* regs) {
   assert(regs->int_no < 256);
 
-  // printf("isr\n");
-  // paging::InspectPhysicalMem(0x01400000 + 0x3000 - 8, 0x01400000 + 0x3000+8);
-
   // NOTE: With interrupts disabled, this means all syscalls will be blocking.
   assert(!InterruptsAreEnabled());
 
-  if (isr::IsrHandlers[regs->int_no]) {
-    isr::handler_t handler = isr::IsrHandlers[regs->int_no];
-    handler(regs);
-  } else {
-    printf("unhandled %s %d in task %p: %s\n",
-           regs->int_no < 32 ? "exception" : "interrupt", regs->int_no,
-           &scheduler::GetCurrentTask(),
-           regs->int_no < 32 ? isr::exception_msgs[regs->int_no] : "Unknown");
-
-    regs->Dump();
-    paging::PageDirectory4M& pd = scheduler::GetCurrentTask().getPageDir();
-    pd.DumpMappedPages();
-    pmm::Dump();
-
-    // TODO: we're better than this
-    abort();
-  }
+  return isr::gIsrHandlers[regs->int_no](regs);
 }
 
 }  // extern "C"
@@ -169,9 +150,13 @@ void Initialize() {
                   0x08, 0x8E | kDPLUser);
 }
 
-void RegisterHandler(uint8_t num, handler_t handler) {
-  assert(IsrHandlers[num] == 0 && "ISR already setup");
-  IsrHandlers[num] = handler;
+void RegisterIsrHandler(uint8_t num, handler_t handler) {
+  assert(gIsrHandlers[num] == 0 && "ISR already setup");
+  gIsrHandlers[num] = handler;
+}
+
+const char* ExceptionStr(uint32_t int_no) {
+  return isr::exception_msgs[int_no];
 }
 
 void registers_t::Dump() const {

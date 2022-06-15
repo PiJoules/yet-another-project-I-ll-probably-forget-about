@@ -161,7 +161,6 @@ void KernelSetup(uintptr_t mem_upper, multiboot::multiboot_memory_map_t *mmaps,
   idt::Initialize();
   isr::Initialize();
   irq::Initialize();
-  syscalls::Initialize();
   timer::Initialize();
   scheduler::Initialize();
   exceptions::InitializeHandlers();

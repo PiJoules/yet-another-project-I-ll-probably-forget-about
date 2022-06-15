@@ -10,6 +10,7 @@ void Initialize();
 // Each callback will be called on a timer click.
 void RegisterTimerCallback(uint8_t num, isr::handler_t callback);
 void UnregisterTimerCallback(uint8_t num);
+void TimerCallback(isr::registers_t* regs);
 
 }  // namespace timer
 

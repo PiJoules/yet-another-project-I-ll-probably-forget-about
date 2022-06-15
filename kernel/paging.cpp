@@ -45,6 +45,13 @@ namespace {
 PageDirectory4M gKernelPageDir;
 PageDirectory4M *gCurrentPageDir;
 
+void MapKernelPage(PageDirectory4M &pd) {
+  uintptr_t kernel_start = reinterpret_cast<uintptr_t>(&__KERNEL_BEGIN);
+  pd.MapPage(kernel_start, kernel_start, PG_PRESENT | PG_WRITE | PG_4MB);
+}
+
+}  // namespace
+
 void PageFaultHandler(isr::registers_t *regs) {
   uint32_t faulting_addr;
   asm volatile("mov %%cr2, %0" : "=r"(faulting_addr));
@@ -79,13 +86,6 @@ void PageFaultHandler(isr::registers_t *regs) {
   abort();
 }
 
-void MapKernelPage(PageDirectory4M &pd) {
-  uintptr_t kernel_start = reinterpret_cast<uintptr_t>(&__KERNEL_BEGIN);
-  pd.MapPage(kernel_start, kernel_start, PG_PRESENT | PG_WRITE | PG_4MB);
-}
-
-}  // namespace
-
 void PageDirectory4M::DumpMappedPages() const {
   printf("Mapped pages:\n");
   for (size_t i = 0; i < pmm::kNumPageDirEntries; ++i) {
@@ -115,8 +115,6 @@ PageDirectory4M &GetCurrentPageDirectory() { return *gCurrentPageDir; }
 PageDirectory4M &GetKernelPageDirectory() { return gKernelPageDir; }
 
 void Initialize() {
-  isr::RegisterHandler(isr::kPageFault, &PageFaultHandler);
-
   // Initialize and set the kernel page directory.
   gKernelPageDir.Clear();
 

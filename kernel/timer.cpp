@@ -18,22 +18,16 @@ uint32_t gTick = 0;
 constexpr size_t kMaxCallbacks = 256;
 isr::handler_t gCallbacks[kMaxCallbacks];
 
-// constexpr uint32_t kLimit = 10;
+}  // namespace
 
 void TimerCallback(isr::registers_t* regs) {
   ++gTick;
-
-  // if (gTick < kLimit) {
-  //   continue;
-  // }
 
   // TODO: Maybe we could reduce this if we only have one caller?
   for (size_t i = 0; i < kMaxCallbacks; ++i) {
     if (auto callback = gCallbacks[i]) callback(regs);
   }
 }
-
-}  // namespace
 
 void RegisterTimerCallback(uint8_t num, isr::handler_t callback) {
   assert(!gCallbacks[num]);
@@ -46,8 +40,6 @@ void UnregisterTimerCallback(uint8_t num) {
 }
 
 void Initialize() {
-  isr::RegisterHandler(IRQ0, &TimerCallback);
-
   uint32_t divisor = TIMER_QUOTIENT / TIMER_FREQ;
 
   io::Write8(PIT_CMD, PIT_SET);

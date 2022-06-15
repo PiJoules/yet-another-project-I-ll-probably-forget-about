@@ -56,8 +56,11 @@ struct registers_t {
 
 using handler_t = void (*)(registers_t *);
 
-void RegisterHandler(uint8_t num, handler_t handler);
+void RegisterIsrHandler(uint8_t num, handler_t handler);
 void Initialize();
+const char *ExceptionStr(uint32_t int_no);
+
+constexpr size_t kNumIsrHandlers = 256;
 
 }  // namespace isr
 
