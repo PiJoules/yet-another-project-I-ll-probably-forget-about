@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <kernel/channel.h>
 #include <kernel/gdt.h>
 #include <kernel/isr.h>
 #include <kernel/kmalloc.h>
@@ -290,6 +291,8 @@ Task::Task(bool user, paging::PageDirectory4M &pd, Task *parent)
 }
 
 Task::~Task() {
+  channel::CloseEndpointsOwnedByTask(this);
+
   kmalloc::kfree(kernel_stack_allocation_);
 
   for (uint32_t &ppage : owned_phys_pages_) {

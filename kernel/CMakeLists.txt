@@ -52,6 +52,7 @@ add_executable(${KERNEL_DEBUG}
   panic.cpp
   isr.cpp
   exceptions.cpp
+  channel.cpp
 )
 
 target_compile_options(${KERNEL_DEBUG} PRIVATE ${KERNEL_CXX_FLAGS})

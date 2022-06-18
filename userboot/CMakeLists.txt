@@ -195,6 +195,20 @@ target_link_options(page-fault PRIVATE -nostdlib)
 add_to_initrd(${CMAKE_CURRENT_BINARY_DIR}/page-fault
               "bin/page-fault")
 
+add_executable(printenv printenv.cpp)
+target_include_directories(printenv
+  PRIVATE ${CMAKE_SOURCE_DIR}/libc/include
+  PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
+  PRIVATE include)
+target_compile_options(printenv PRIVATE ${USER_CXX_FLAGS})
+target_link_libraries(printenv
+  PRIVATE user_libc
+  PRIVATE user_libcxx)
+target_link_options(printenv PRIVATE -nostdlib)
+
+add_to_initrd(${CMAKE_CURRENT_BINARY_DIR}/printenv
+              "bin/printenv")
+
 set(USER_PROGRAMS_LIST ${USER_PROGRAMS})
 separate_arguments(USER_PROGRAMS_LIST)
 

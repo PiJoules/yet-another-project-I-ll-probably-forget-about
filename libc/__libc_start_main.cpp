@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 extern "C" int main(int argc, char **argv);
+extern "C" char **environ;
 
 #ifndef __USERBOOT_STAGE1__
 
@@ -22,6 +23,7 @@ libc::startup::GlobalState *gGlobalState = nullptr;
 libc::startup::RootDir *gGlobalFs = nullptr;
 libc::startup::Dir *gCurrentDir = nullptr;
 libc::startup::Envp *gEnvp = nullptr;
+std::unique_ptr<char[]> *gPlainEnv = nullptr;
 
 void SetCurrentDir(const char *pwd) {
   libc::startup::VFSNode *node = libc::startup::GetNodeFromPath(pwd);
@@ -49,6 +51,7 @@ Dir *GetCurrentDir() { return gCurrentDir; }
 RootDir *GetGlobalFS() { return gGlobalFs; }
 GlobalState *GetGlobalState() { return gGlobalState; }
 Envp *GetEnvp() { return gEnvp; }
+std::unique_ptr<char[]> *GetPlainEnv() { return gPlainEnv; }
 
 void SetCurrentDir(Dir *wd) {
   assert(wd);
@@ -116,9 +119,19 @@ extern "C" int __libc_start_main([[maybe_unused]] uint32_t arg) {
   gCurrentDir = &root;
 
   libc::startup::Envp envp;
-  libc::startup::UnpackEnvp(reinterpret_cast<char **>(gGlobalState->envp_page),
-                            envp);
+  syscall::handle_t envp_channel = gGlobalState->envp_handle;
+  // Get an initial size.
+  size_t envpsize;
+  syscall::ChannelReadBlocking(envp_channel, &envpsize, sizeof(envpsize));
+  // Read the rest.
+  ResizableBuffer buffer(envpsize);
+  syscall::ChannelReadBlocking(envp_channel, buffer.getData(), envpsize);
+  // Now unpack.
+  envp.Unpack(buffer);
   gEnvp = &envp;
+  std::unique_ptr<char[]> plain_env = gEnvp->getPlainEnvp();
+  gPlainEnv = &plain_env;
+  environ = reinterpret_cast<char **>(gPlainEnv->get());
 
   // The current working dir points to the root dir, but if the `PWD` env
   // variable is set, then we can manually move to that dir.

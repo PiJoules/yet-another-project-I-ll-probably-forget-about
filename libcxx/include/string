@@ -81,6 +81,13 @@ class basic_string {
     data_[length_] = 0;
   }
 
+  basic_string(const value_type *other, size_type count) {
+    length_ = count;
+    data_ = new value_type[length_ + 1];
+    memcpy(data_, other, length_);
+    data_[length_] = 0;
+  }
+
   basic_string(const basic_string& other, size_type pos, size_type count = npos) {
     if (pos > other.size()) __throw_out_of_range();
     length_ = std::min(other.size() - pos, count);

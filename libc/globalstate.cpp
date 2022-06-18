@@ -4,6 +4,8 @@
 #include <string.h>
 #include <syscalls.h>
 
+extern "C" char **environ;
+
 namespace libc {
 namespace startup {
 
@@ -29,22 +31,6 @@ uintptr_t ApplyVFSData(uintptr_t data_loc, size_t size,
   return other_addr;
 }
 
-// The start of the page will be the table of pointers to strings elsewhere in
-// the page.
-uintptr_t ApplyEnvp(const Envp &envp, syscall::handle_t other_proc) {
-  syscall::PageAlloc envp_page;
-  uintptr_t addr = envp_page.getAddr();
-
-  uintptr_t other_addr;
-  envp_page.MapAnonAndSwap(other_proc, other_addr);
-
-  envp.ApplyRelative(
-      reinterpret_cast<char *>(addr),
-      reinterpret_cast<char *>(other_addr) - reinterpret_cast<char *>(addr));
-
-  return other_addr;
-}
-
 void UnpackEnvp(char *const envp[], Envp &envp_vec) {
   while (*envp) {
     // Environment variables are in the format `KEY=VAL`.
@@ -61,6 +47,15 @@ void UnpackEnvp(char *const envp[], Envp &envp_vec) {
     ++envp;
   }
 }
+
+#if !defined(__USERBOOT_STAGE1__)
+// Userboot stage 1 does not have an environment to update.
+void UpdateEnviron() {
+  std::unique_ptr<char[]> plain_env = GetEnvp()->getPlainEnvp();
+  GetPlainEnv()->swap(plain_env);
+  environ = reinterpret_cast<char **>(GetPlainEnv()->get());
+}
+#endif  // !defined(__USERBOOT_STAGE1__)
 
 }  // namespace startup
 }  // namespace libc

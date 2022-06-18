@@ -205,13 +205,25 @@ void LoadElfProgram(uintptr_t elf_data, const libc::startup::ArgvParam *params,
   uintptr_t vfs_page =
       libc::startup::ApplyVFSData(vfs_data, vfs_data_size, proc_handle);
 
-  uintptr_t envp_page = libc::startup::ApplyEnvp(envp, proc_handle);
+  handle_t end1, end2;
+  syscall::ChannelCreate(end1, end2);
+  syscall::TransferHandle(proc_handle, end2);
+
+  // First write the size of the buffer so the receiving end knows how much to
+  // expect.
+  ResizableBuffer buffer;
+  envp.Pack(buffer);
+  size_t buffsize = buffer.getSize();
+  syscall::ChannelWrite(end1, &buffsize, sizeof(buffsize));
+
+  // Then write the rest of the data.
+  syscall::ChannelWrite(end1, buffer.getData(), buffsize);
 
   // NOTE: We will not be creating a VFS here. That will be done in stage 2.
   libc::startup::GlobalState state = {
       .argv_page = other_argv_page,
       .vfs_page = vfs_page,
-      .envp_page = envp_page,
+      .envp_handle = end2,
   };
   uintptr_t global_state_addr =
       libc::startup::ApplyGlobalState(state, proc_handle);

@@ -1,3 +1,4 @@
+#include <kernel/channel.h>
 #include <kernel/exceptions.h>
 #include <kernel/gdt.h>
 #include <kernel/idt.h>
@@ -164,6 +165,7 @@ void KernelSetup(uintptr_t mem_upper, multiboot::multiboot_memory_map_t *mmaps,
   timer::Initialize();
   scheduler::Initialize();
   exceptions::InitializeHandlers();
+  channel::Initialize();
 
   const size_t init_used_pages = pmm::GetNumUsed4MPages();
 
@@ -177,6 +179,7 @@ void KernelSetup(uintptr_t mem_upper, multiboot::multiboot_memory_map_t *mmaps,
         "program.\n");
   }
 
+  channel::Destroy();
   scheduler::Destroy();
 
   // END OF KERNEL = Do some cleanup.

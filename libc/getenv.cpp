@@ -6,6 +6,8 @@
 
 #include <string>
 
+char **environ;
+
 char *getenv(const char *name) {
   std::string *val = libc::startup::GetEnvp()->getVal(name);
   if (!val) return NULL;
@@ -39,5 +41,8 @@ int setenv(const char *envname, const char *envval, int overwrite) {
   // The value does not exist for this key, or it does exist but we can
   // overwrite it.
   envp->setVal(envname, envval);
+
+  libc::startup::UpdateEnviron();
+
   return 0;
 }

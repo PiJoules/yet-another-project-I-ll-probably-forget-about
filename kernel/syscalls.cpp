@@ -1,3 +1,4 @@
+#include <kernel/channel.h>
 #include <kernel/isr.h>
 #include <kernel/scheduler.h>
 #include <kernel/serial.h>
@@ -416,10 +417,107 @@ void SYS_ProcessWait(isr::registers_t *regs) {
   abort();
 }
 
+// Create a bi-directional channel through which two tasks can privately
+// communicate. Both ends are owned by the current process. Once a process
+// stops, any endpoints of a channel it has are closed. If one end of a channel
+// is closed but another is open, data can still be read from the open end,
+// but it cannot be written to.
+//
+// This sets return values via the following registers:
+//
+//   EAX - The handle to one end of the channel.
+//   EBX - The endpoint to the other end of the channel.
+//
+void SYS_ChannelCreate(isr::registers_t *regs) {
+  channel::Endpoint *end1, *end2;
+  channel::Create(end1, end2);
+  regs->eax = reinterpret_cast<handle_t>(end1);
+  regs->ebx = reinterpret_cast<handle_t>(end2);
+}
+
+// Close a handle. This has different behavior depending on the handle type. If
+// this a handle to one endpoint of a channel, this will close the other
+// endpoint also.
+//
+// This accepts arguments via the following syscalls:
+//
+//   EBX - The handle to close.
+//
+void SYS_HandleClose(isr::registers_t *regs) {
+  handle_t handle = regs->ebx;
+
+  // FIXME: This just assumes a channel endpoint handle.
+  auto *endpoint = reinterpret_cast<channel::Endpoint *>(handle);
+  endpoint->Close();
+}
+
+// Read from a channel.
+//
+// This accepts arguments via the following syscalls:
+//
+//   EBX - The handle to one end of the channel.
+//   ECX - The destination address to write to.
+//   EDX - The number of bytes to read.
+//
+// This sets return values via the following registers:
+//
+//   EAX - The return status. This is K_BUFFER_TOO_SMALL if the read size is
+//         less than the number of bytes on the channel.
+//   EBX - The number of bytes available to read. This is only set if the
+//         number of bytes requested to read is greater than the number of
+//         bytes in the channel.
+//
+void SYS_ChannelRead(isr::registers_t *regs) {
+  auto *endpoint = reinterpret_cast<channel::Endpoint *>(regs->ebx);
+  void *dst = reinterpret_cast<void *>(regs->ecx);
+  size_t size = regs->edx;
+  size_t bytes_available;
+  bool success = endpoint->Read(dst, size, &bytes_available);
+  if (success) {
+    regs->eax = K_OK;
+  } else {
+    regs->eax = K_BUFFER_TOO_SMALL;
+    regs->ebx = bytes_available;
+  }
+}
+
+// Write to a channel.
+//
+// This accepts arguments via the following syscalls:
+//
+//   EBX - The handle to one end of the channel.
+//   ECX - The source address to read data from.
+//   EDX - The number of bytes to write.
+//
+void SYS_ChannelWrite(isr::registers_t *regs) {
+  auto *endpoint = reinterpret_cast<channel::Endpoint *>(regs->ebx);
+  void *src = reinterpret_cast<void *>(regs->ecx);
+  size_t size = regs->edx;
+  endpoint->Write(src, size);
+}
+
+// Transfer ownership of a handle to another process.
+//
+// This accepts arguments via the following registers:
+//
+//   EBX - The handle of the process to transfer ownership to.
+//   ECX - The handle to transfer ownership.
+//
+void SYS_TransferHandle(isr::registers_t *regs) {
+  handle_t proc_handle = regs->ebx;
+  handle_t transfer_handle = regs->ecx;
+  auto *task = reinterpret_cast<scheduler::Task *>(proc_handle);
+  auto *endpoint = reinterpret_cast<channel::Endpoint *>(transfer_handle);
+
+  // FIXME: This only works for channel handles.
+  endpoint->TransferOwner(task);
+}
+
 constexpr isr::handler_t kSyscallHandlers[] = {
     SYS_DebugWrite,    SYS_ProcessKill, SYS_AllocPage,    SYS_PageSize,
     SYS_ProcessCreate, SYS_MapPage,     SYS_ProcessStart, SYS_UnmapPage,
-    SYS_ProcessInfo,   SYS_DebugRead,   SYS_ProcessWait,
+    SYS_ProcessInfo,   SYS_DebugRead,   SYS_ProcessWait,  SYS_ChannelCreate,
+    SYS_HandleClose,   SYS_ChannelRead, SYS_ChannelWrite, SYS_TransferHandle,
 };
 constexpr size_t kNumSyscalls =
     sizeof(kSyscallHandlers) / sizeof(isr::handler_t);

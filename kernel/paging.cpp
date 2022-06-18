@@ -25,7 +25,6 @@ void InspectPhysicalMem(uintptr_t start, uintptr_t end) {
   assert(free_vpage >= 0);
   pd.MapPage((uint32_t)free_vpage, page_start, /*flags=*/0);
 
-  // for (int i = 0; i < 0x2000; ++i) {
   const uint32_t *begin =
       (uint32_t *)(start - page_start + (uint32_t)free_vpage);
   const uint32_t *end_ = (uint32_t *)(end - page_end + (uint32_t)free_vpage);

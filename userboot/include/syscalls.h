@@ -12,6 +12,11 @@
 #define SYS_ProcessInfo 8
 #define SYS_DebugRead 9
 #define SYS_ProcessWait 10
+#define SYS_ChannelCreate 11
+#define SYS_HandleClose 12
+#define SYS_ChannelRead 13
+#define SYS_ChannelWrite 14
+#define SYS_TransferHandle 15
 
 // AllocPage flags.
 #define ALLOC_ANON 0x1
@@ -54,6 +59,12 @@ kstatus_t ProcessWait(handle_t proc, uint32_t signals,
                       uint32_t &received_signal, uint32_t &signal_val);
 kstatus_t ProcessInfo(handle_t proc, uint32_t kind, void *dst,
                       size_t buffer_size, size_t &written_or_needed);
+void ChannelCreate(handle_t &end1, handle_t &end2);
+void HandleClose(handle_t handle);
+kstatus_t ChannelRead(handle_t endpoint, void *dst, size_t size,
+                      size_t *bytes_available = nullptr);
+void ChannelWrite(handle_t endpoint, const void *src, size_t size);
+void TransferHandle(handle_t proc, handle_t handle);
 
 // This is an RAII-style object for either allocating or mapping a page upon
 // creation (in the current process), then unmapping it on destruction.
@@ -98,6 +109,13 @@ class PageAlloc {
  private:
   uintptr_t addr_;
 };
+
+// Perform a blocking read on a channel until we successfully read bytes
+// off it.
+inline void ChannelReadBlocking(handle_t channel, void *dst, size_t size) {
+  kstatus_t status;
+  do { status = ChannelRead(channel, dst, size); } while (status != K_OK);
+}
 
 }  // namespace syscall
 

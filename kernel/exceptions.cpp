@@ -26,6 +26,10 @@ void HandleKernelException(isr::registers_t *regs) {
 }
 
 void DispatchUserException(isr::registers_t *regs) {
+  if (regs->int_no == isr::kPageFault) {
+    return paging::PageFaultHandler(regs);
+  }
+
   // TODO: Allow for user processes to create custom exception handlers.
   printf("unhandled %s %d in task %p: %s\n",
          regs->int_no < 32 ? "exception" : "interrupt", regs->int_no,

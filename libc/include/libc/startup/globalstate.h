@@ -3,6 +3,7 @@
 
 #ifndef __KERNEL__
 
+#include <libc/resizable_buffer.h>
 #include <libc/startup/vfs.h>
 #include <stddef.h>
 #include <string.h>
@@ -15,12 +16,13 @@ namespace startup {
 struct GlobalState {
   uintptr_t argv_page;
   uintptr_t vfs_page;
-  uintptr_t envp_page;
+  syscall::handle_t envp_handle;
 };
 
 Dir *GetCurrentDir();
 RootDir *GetGlobalFS();
 GlobalState *GetGlobalState();
+std::unique_ptr<char[]> *GetPlainEnv();
 
 // This class makes it easier to edit the environment by separating the keys
 // and values into their own allocations in a dynamic container.
@@ -87,18 +89,42 @@ class Envp {
   // the pointers to strings, add an optional offset to the stored value. This
   // is useful if the address this value will be loaded from is different from
   // where it is stored.
-  //
-  // TODO: This operates similar to the argv packing. We should probably have a
-  // generic class represeinting "relative" tables that we can pack and unpack.
-  void ApplyRelative(char *dst, int32_t ptr_offset = 0) const {
+  void ApplyRelative(char *dst) const {
     char **start = reinterpret_cast<char **>(dst);
     char **end = start + envp_.size() + 1;
     char *strings_start = reinterpret_cast<char *>(end);
     for (size_t i = 0; i < envp_.size(); ++i) {
-      start[i] = strings_start + ptr_offset;
+      start[i] = strings_start;
       CopyEntry(strings_start, i);
     }
     start[envp_.size()] = 0;
+  }
+
+  void Pack(ResizableBuffer &buffer) const {
+    for (const auto &pair : envp_) {
+      // Pack the size of the key, then the key.
+      buffer.WriteLenAndData(pair.key.c_str(), pair.key.size());
+      // Pack the size of the value, then the value.
+      buffer.WriteLenAndData(pair.val.c_str(), pair.val.size());
+    }
+  }
+
+  void Unpack(ResizableBuffer &buffer) {
+    while (!buffer.empty()) {
+      // Get the size of the key.
+      size_t keysize = buffer.ReadLen();
+      // Make the value.
+      std::string key(reinterpret_cast<char *>(buffer.getData()), keysize);
+      buffer.Skip(keysize);
+
+      // Get the size of the value.
+      size_t valsize = buffer.ReadLen();
+      // Make the value.
+      std::string val(reinterpret_cast<char *>(buffer.getData()), valsize);
+      buffer.Skip(valsize);
+
+      setVal(key, val);
+    }
   }
 
  private:
@@ -136,6 +162,8 @@ uintptr_t ApplyVFSData(uintptr_t data_loc, size_t size,
 uintptr_t ApplyEnvp(const Envp &envp, syscall::handle_t other_proc);
 
 void UnpackEnvp(char *const envp[], Envp &envp_vec);
+
+void UpdateEnviron();
 
 }  // namespace startup
 }  // namespace libc

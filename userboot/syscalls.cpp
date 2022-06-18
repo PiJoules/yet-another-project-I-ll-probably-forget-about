@@ -84,4 +84,32 @@ kstatus_t ProcessInfo(handle_t proc, uint32_t kind, void *dst,
   return status;
 }
 
+void ChannelCreate(handle_t &end1, handle_t &end2) {
+  asm volatile("int $0x80" : "=a"(end1), "=b"(end2) : "0"(SYS_ChannelCreate));
+}
+
+void HandleClose(handle_t handle) {
+  asm volatile("int $0x80" ::"a"(SYS_HandleClose), "b"(handle));
+}
+
+kstatus_t ChannelRead(handle_t endpoint, void *dst, size_t size,
+                      size_t *bytes_available) {
+  size_t bytes_avail;
+  kstatus_t status;
+  asm volatile("int $0x80"
+               : "=a"(status), "=b"(bytes_avail)
+               : "0"(SYS_ChannelRead), "1"(endpoint), "c"(dst), "d"(size));
+  if (bytes_available) *bytes_available = bytes_avail;
+  return status;
+}
+
+void ChannelWrite(handle_t endpoint, const void *src, size_t size) {
+  asm volatile("int $0x80" ::"a"(SYS_ChannelWrite), "b"(endpoint), "c"(src),
+               "d"(size));
+}
+
+void TransferHandle(handle_t proc, handle_t handle) {
+  asm volatile("int $0x80" ::"a"(SYS_TransferHandle), "b"(proc), "c"(handle));
+}
+
 }  // namespace syscall
