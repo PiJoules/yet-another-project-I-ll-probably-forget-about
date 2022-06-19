@@ -24,7 +24,8 @@ int ExecImpl(const char *path, char *const argv[],
   std::vector<libc::startup::ArgvParam> params;
   while (char *arg = *(argv++)) { params.emplace_back(arg); }
 
-  uintptr_t vfs_data = libc::startup::GetGlobalState()->vfs_page;
+  uintptr_t vfs_data =
+      reinterpret_cast<uintptr_t>(libc::startup::GetRawVfsData());
   size_t vfs_data_size = libc::GetTarsize(vfs_data);
 
   uintptr_t elf_data = reinterpret_cast<uintptr_t>(f.getData());

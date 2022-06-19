@@ -80,6 +80,17 @@ void PackParams(uintptr_t load_addr, const ArgvParam *params,
   }
 }
 
+size_t PackSize(const ArgvParam *params, size_t num_params) {
+  size_t packsize = 0;
+  packsize += sizeof(int);                  // argc
+  packsize += sizeof(char *) * num_params;  // The artual argv table
+  for (size_t i = 0; i < num_params; ++i) {
+    const ArgvParam &param = params[i];
+    packsize += param.size + 1;  // Size of each string + null terminator
+  }
+  return packsize;
+}
+
 void UnpackParams(uintptr_t params_addr, int &argc, char **&argv) {
   assert(params_addr % alignof(int) == 0);
   assert((params_addr + sizeof(int)) % alignof(char **) == 0);

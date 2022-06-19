@@ -65,6 +65,13 @@ class ResizableBuffer {
     WriteLenAndData(&src, sizeof(T));
   }
 
+  void Resize(size_t size) {
+    if (size > size_) { ReserveIfNeeded(size); }
+
+    // This will cut off the end if the new size is shorted.
+    size_ = size;
+  }
+
   void Read(void *dst, size_t size) {
     assert(size_ >= size);
     if (dst) { memcpy(dst, data_, size); }
@@ -79,6 +86,7 @@ class ResizableBuffer {
   }
 
   void Skip(size_t size) { Read(/*dst=*/nullptr, size); }
+  void Clear() { size_ = 0; }
 
  private:
   size_t size_;

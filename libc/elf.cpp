@@ -195,43 +195,37 @@ void LoadElfProgram(uintptr_t elf_data, const libc::startup::ArgvParam *params,
     relocator.ApplyRelocs(elf_data, load_addr.getAddr(), new_load_addr);
   }
 
-  // Allocate a page into the child process, map a page from this process into
-  // it, pack the params onto that page, then unmap from this process.
-  syscall::PageAlloc this_argv_page;
-  uintptr_t other_argv_page;
-  DEBUG_OK(this_argv_page.MapAnonAndSwap(proc_handle, other_argv_page));
-  libc::startup::PackParams(this_argv_page.getAddr(), params, num_params);
-
-  uintptr_t vfs_page =
-      libc::startup::ApplyVFSData(vfs_data, vfs_data_size, proc_handle);
-
   handle_t end1, end2;
   syscall::ChannelCreate(end1, end2);
   syscall::TransferHandle(proc_handle, end2);
+
+  syscall::ChannelWrite(end1, &vfs_data_size, sizeof(vfs_data_size));
+  syscall::ChannelWrite(end1, reinterpret_cast<void *>(vfs_data),
+                        vfs_data_size);
 
   // First write the size of the buffer so the receiving end knows how much to
   // expect.
   ResizableBuffer buffer;
   envp.Pack(buffer);
-  size_t buffsize = buffer.getSize();
-  syscall::ChannelWrite(end1, &buffsize, sizeof(buffsize));
+  size_t envpsize = buffer.getSize();
+  syscall::ChannelWrite(end1, &envpsize, sizeof(envpsize));
 
   // Then write the rest of the data.
-  syscall::ChannelWrite(end1, buffer.getData(), buffsize);
+  syscall::ChannelWrite(end1, buffer.getData(), envpsize);
 
-  // NOTE: We will not be creating a VFS here. That will be done in stage 2.
-  libc::startup::GlobalState state = {
-      .argv_page = other_argv_page,
-      .vfs_page = vfs_page,
-      .envp_handle = end2,
-  };
-  uintptr_t global_state_addr =
-      libc::startup::ApplyGlobalState(state, proc_handle);
+  // Write the argv data.
+  buffer.Clear();
+  buffer.Resize(libc::startup::PackSize(params, num_params));
+  libc::startup::PackParams(reinterpret_cast<uintptr_t>(buffer.getData()),
+                            params, num_params);
+  size_t argvsize = buffer.getSize();
+  syscall::ChannelWrite(end1, &argvsize, sizeof(argvsize));
+  syscall::ChannelWrite(end1, buffer.getData(), argvsize);
 
   // Start the process.
-  syscall::ProcessStart(proc_handle, new_load_addr + program_entry_point,
-                        global_state_addr);
-  DEBUG_PRINT("waiting to start process 0x%x.\n", proc_handle);
+  syscall::ProcessStart(proc_handle, new_load_addr + program_entry_point, end2);
+
+  syscall::HandleClose(end1);
 }
 
 }  // namespace elf

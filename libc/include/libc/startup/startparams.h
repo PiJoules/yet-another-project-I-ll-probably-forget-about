@@ -19,6 +19,7 @@ struct ArgvParam {
 
 void PackParams(uintptr_t load_addr, const ArgvParam *params,
                 size_t num_params);
+size_t PackSize(const ArgvParam *params, size_t num_params);
 void UnpackParams(uintptr_t params_addr, int &argc, char **&argv);
 
 }  // namespace startup

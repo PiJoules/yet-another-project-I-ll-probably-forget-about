@@ -19,11 +19,11 @@ extern "C" char **environ;
 
 namespace {
 
-libc::startup::GlobalState *gGlobalState = nullptr;
 libc::startup::RootDir *gGlobalFs = nullptr;
 libc::startup::Dir *gCurrentDir = nullptr;
 libc::startup::Envp *gEnvp = nullptr;
 std::unique_ptr<char[]> *gPlainEnv = nullptr;
+const void *gRawVfsData = nullptr;
 
 void SetCurrentDir(const char *pwd) {
   libc::startup::VFSNode *node = libc::startup::GetNodeFromPath(pwd);
@@ -49,9 +49,9 @@ namespace libc {
 namespace startup {
 Dir *GetCurrentDir() { return gCurrentDir; }
 RootDir *GetGlobalFS() { return gGlobalFs; }
-GlobalState *GetGlobalState() { return gGlobalState; }
 Envp *GetEnvp() { return gEnvp; }
 std::unique_ptr<char[]> *GetPlainEnv() { return gPlainEnv; }
+const void *GetRawVfsData() { return gRawVfsData; }
 
 void SetCurrentDir(Dir *wd) {
   assert(wd);
@@ -106,27 +106,29 @@ extern "C" int __libc_start_main([[maybe_unused]] uint32_t arg) {
   // kernel, so we can ignore them here.
   return main(/*argc=*/0, /*argv=*/nullptr);
 #else
-  assert(arg % alignof(libc::startup::GlobalState) == 0);
-  gGlobalState = reinterpret_cast<libc::startup::GlobalState *>(arg);
+  syscall::handle_t startup_channel = arg;
 
   libc::startup::RootDir root;
 
-  // FIXME: Technically, the vfs page we allocated could be at address zero, so
-  // this would be incorrect. If we fixup userboot to just always set this to
-  // some correct page, we won't have to check this here.
-  libc::startup::InitVFS(root, gGlobalState->vfs_page);
+  // Each of these things we initialize follows a pattern of:
+  // - First thing off the stream is the expected size.
+  // - Second thing is some packed data of the size we just got that we can use
+  //   to construct an object.
+  size_t vfssize;
+  syscall::ChannelReadBlocking(startup_channel, &vfssize, sizeof(vfssize));
+  ResizableBuffer vfsbuffer(vfssize);
+  syscall::ChannelReadBlocking(startup_channel, vfsbuffer.getData(), vfssize);
+  libc::startup::InitVFS(root,
+                         reinterpret_cast<uintptr_t>(vfsbuffer.getData()));
+  gRawVfsData = vfsbuffer.getData();
   gGlobalFs = &root;
   gCurrentDir = &root;
 
   libc::startup::Envp envp;
-  syscall::handle_t envp_channel = gGlobalState->envp_handle;
-  // Get an initial size.
   size_t envpsize;
-  syscall::ChannelReadBlocking(envp_channel, &envpsize, sizeof(envpsize));
-  // Read the rest.
+  syscall::ChannelReadBlocking(startup_channel, &envpsize, sizeof(envpsize));
   ResizableBuffer buffer(envpsize);
-  syscall::ChannelReadBlocking(envp_channel, buffer.getData(), envpsize);
-  // Now unpack.
+  syscall::ChannelReadBlocking(startup_channel, buffer.getData(), envpsize);
   envp.Unpack(buffer);
   gEnvp = &envp;
   std::unique_ptr<char[]> plain_env = gEnvp->getPlainEnvp();
@@ -143,12 +145,17 @@ extern "C" int __libc_start_main([[maybe_unused]] uint32_t arg) {
 
   // From here, we need to extract params from our process argument to
   // create argc and argv.
+  size_t argvsize;
+  syscall::ChannelReadBlocking(startup_channel, &argvsize, sizeof(argvsize));
+  buffer.Clear();
+  buffer.Resize(argvsize);
+  syscall::ChannelReadBlocking(startup_channel, buffer.getData(), argvsize);
   int argc;
   char **argv;
-  libc::startup::UnpackParams(gGlobalState->argv_page, argc, argv);
+  libc::startup::UnpackParams(reinterpret_cast<uintptr_t>(buffer.getData()),
+                              argc, argv);
 
-  if (!gGlobalFs) { printf("WARN: Virtual filesystem not available!\n"); }
-
+  syscall::HandleClose(startup_channel);
   return main(argc, argv);
 #endif
 }

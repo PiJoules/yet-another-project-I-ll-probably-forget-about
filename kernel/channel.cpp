@@ -24,10 +24,27 @@ std::vector<Channel> *gChannels;
 void Endpoint::ReserveIfNeeded(size_t amt) {
   if (amt > capacity_) {
     void *newdata = malloc(amt);
+    assert(newdata);
     memcpy(newdata, data_, size_);
     free(data_);
 
     data_ = newdata;
+    capacity_ = amt;
+  }
+}
+
+void Endpoint::ShrinkCapacity(size_t amt) {
+  if (amt >= size_ && amt < capacity_) {
+    if (amt == 0) {
+      free(data_);
+      data_ = nullptr;
+    } else {
+      void *newdata = malloc(amt);
+      assert(newdata);
+      memcpy(newdata, data_, size_);
+      free(data_);
+      data_ = newdata;
+    }
     capacity_ = amt;
   }
 }
@@ -39,6 +56,8 @@ void Endpoint::WriteSelf(const void *src, size_t size) {
 }
 
 bool Endpoint::ReadSelf(void *dst, size_t size, size_t *bytes_available) {
+  if (size == 0) return true;
+
   if (size > size_) {
     if (bytes_available) *bytes_available = size_;
     return false;
@@ -46,6 +65,9 @@ bool Endpoint::ReadSelf(void *dst, size_t size, size_t *bytes_available) {
   memcpy(dst, data_, size);
   memmove(data_, reinterpret_cast<uint8_t *>(data_) + size, size_ - size);
   size_ -= size;
+
+  ShrinkCapacity(size_);
+
   return true;
 }
 

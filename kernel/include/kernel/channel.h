@@ -47,6 +47,7 @@ class Endpoint {
   void Init(Endpoint *other) { other_ = other; }
 
   void ReserveIfNeeded(size_t amt);
+  void ShrinkCapacity(size_t amt);
 
   Endpoint *other_ = nullptr;
   size_t size_;

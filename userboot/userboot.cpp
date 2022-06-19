@@ -3,27 +3,23 @@
 #include <assert.h>
 #include <ctype.h>
 #include <libc/elf/elf.h>
-#include <libc/startup/globalstate.h>
 #include <libc/startup/startparams.h>
-#include <libc/startup/vfs.h>
 #include <libc/ustar.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syscalls.h>
 #include <unistd.h>
 
 #include <memory>
-#include <string>
-#include <vector>
 
 #define DEBUG_OK(x) DEBUG_ASSERT((x) == K_OK)
+
+#ifdef __USERBOOT_STAGE1__
 
 using libc::DirInfo;
 using libc::FileInfo;
 using libc::elf::ElfModule;
 using libc::elf::LoadElfProgram;
-using syscall::handle_t;
 
 namespace {
 
@@ -77,8 +73,6 @@ void FindAndRunRootElfExe(uintptr_t tar_start, const char *filename,
 
 }  // namespace
 
-#ifdef __USERBOOT_STAGE1__
-
 extern "C" {
 
 // NOTE: We need this here for now so the resulting binary does *not* perform
@@ -126,49 +120,18 @@ int main(int, char **) {
       "Userboot starting location global does not actually point to the "
       "start of the binary");
 
-  size_t tarsize = libc::GetTarsize(userboot_end);
   libc::startup::ArgvParam params[] = {
       // FIXME: This will only ever launch into stage2 if anything about this
       // file path changes in the build system (like if the "./" was removed).
       // Although it means we'd be in stage 1 longer, it might be more reliable
       // to use libc vfs tools.
       libc::startup::ArgvParam("./userboot-stage2"),
-      libc::startup::ArgvParam(reinterpret_cast<char *>(userboot_end), tarsize),
   };
-  FindAndRunRootElfExe(userboot_end, params[0].arg, params, 2);
+  FindAndRunRootElfExe(userboot_end, params[0].arg, params,
+                       sizeof(params) / sizeof(params[0]));
 }
 
 #else
-
-namespace {
-
-void Exec(const libc::startup::File &f, uintptr_t vfs_data,
-          size_t vfs_data_size) {
-  libc::startup::ArgvParam params[] = {
-      libc::startup::ArgvParam(f.getName().c_str()),
-  };
-
-  // NOTE: We are starting this exe without any environment variables.
-  libc::startup::Envp envp;
-
-  DEBUG_PRINT("Attempting to run %s. Allocating page for executable.\n",
-              f.getName().c_str());
-
-  uintptr_t elf_data = reinterpret_cast<uintptr_t>(f.getData());
-  if (elf_data % ElfModule::kMinAlign != 0) {
-    std::unique_ptr<char[]> aligned_elf_data(
-        new (std::align_val_t(ElfModule::kMinAlign)) char[f.getSize()]);
-    DEBUG_ASSERT(aligned_elf_data);
-    memcpy(aligned_elf_data.get(), f.getData(), f.getSize());
-    LoadElfProgram(reinterpret_cast<uintptr_t>(aligned_elf_data.get()), params,
-                   /*num_params=*/1, vfs_data, vfs_data_size, envp);
-  } else {
-    LoadElfProgram(elf_data, params, /*num_params=*/1, vfs_data, vfs_data_size,
-                   envp);
-  }
-}
-
-}  // namespace
 
 int main(int argc, char **argv) {
   // Userboot stage 2 should be nearly the exact same as userboot stage 1. The
@@ -182,30 +145,9 @@ int main(int argc, char **argv) {
   DEBUG_PRINT("argc: %d\n", argc);
   DEBUG_PRINT("argv: %p\n", argv);
 
-  // NOTE: This may be unaligned.
-  // TODO: This should not be needed anymore since the global state has a page
-  // pointing to this. At this point, we should be comfortable exercising the
-  // `execv` family of commands.
-  uintptr_t raw_vfs_data = reinterpret_cast<uintptr_t>(argv[1]);
-
-  libc::startup::ArgvParam params[] = {
-      libc::startup::ArgvParam("./test-hello"),
-      libc::startup::ArgvParam("from userboot stage 2"),
-  };
-  FindAndRunRootElfExe(raw_vfs_data, params[0].arg, params, /*num_params=*/2);
-
-  libc::startup::ArgvParam params2[] = {
-      libc::startup::ArgvParam("./tests/test-malloc"),
-  };
-  FindAndRunRootElfExe(raw_vfs_data, params2[0].arg, params2, /*num_params=*/1);
-
-  libc::startup::RootDir root;
-  libc::startup::InitVFS(root, raw_vfs_data);
-  root.Tree();
-
   // Launch a shell!
-  size_t tarsize = libc::GetTarsize(raw_vfs_data);
-  Exec(*root.getDir("bin")->getFile("shell"), raw_vfs_data, tarsize);
+  char *argv2[] = {NULL};
+  execv("/bin/shell", argv2);
 }
 
 #endif  // __USERBOOT_STAGE1__

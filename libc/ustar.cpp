@@ -72,7 +72,9 @@ size_t IterateUSTAR(uintptr_t archive, dir_callback_t dircallback,
 
     tar += num_chunks;
   }
-  return reinterpret_cast<uintptr_t>(tar) - archive;
+
+  // Be sure to add 2 more pages to indicate the ending zero-pages.
+  return reinterpret_cast<uintptr_t>(tar) - archive + (kTarBlockSize * 2);
 }
 
 }  // namespace libc

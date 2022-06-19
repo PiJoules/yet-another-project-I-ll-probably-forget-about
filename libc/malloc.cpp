@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <libc/malloc.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -46,17 +47,38 @@ namespace malloc {
 namespace {
 
 // These are set in `Initialize`.
-size_t gAllocSize;
-uintptr_t gMallocStart;
+uintptr_t gFirstAlloc = 0;
+ask_for_more_func_t gAskFunc = nullptr;
+
+static_assert(sizeof(uintptr_t) == 4);
+static_assert(sizeof(size_t) == 4);
+constexpr size_t kAllocOffset = sizeof(uintptr_t) + sizeof(size_t);
+
+size_t &GetAllocSize(uintptr_t alloc) {
+  // The allocation size is 4 bytes after the start of this allocation.
+  return reinterpret_cast<uint32_t *>(alloc)[1];
+}
+
+uintptr_t &GetNextAlloc(uintptr_t alloc) {
+  // The next allocation address is at the very start of the allocation.
+  return reinterpret_cast<uint32_t *>(alloc)[0];
+}
+
+uintptr_t GetLastAlloc() {
+  if (!gFirstAlloc) return 0;
+  uintptr_t alloc = gFirstAlloc;
+  size_t next_alloc;
+  while ((next_alloc = GetNextAlloc(alloc))) { alloc = next_alloc; }
+  return alloc;
+}
 
 // `MallocHeader` is a shadow allocation placed right before the pointer we
 // return from `malloc`.
 constexpr size_t kMinSize = 4;
 constexpr size_t kSizeBitsMax = 31;
 constexpr size_t kSizeMax = (UINT32_C(1) << kSizeBitsMax) - 1;
-// constexpr size_t kSizeMax = UINT32_MAX;
-//  Manually set alignment here because it's possible for alignof(MallocHeader)
-//  to be 1 (without alignas) since it's packed.
+// Manually set alignment here because it's possible for alignof(MallocHeader)
+// to be 1 (without alignas) since it's packed.
 struct alignas(kMinSize) MallocHeader {
   // This refers to the size of the allocated memory following this header.
   // Note that since the malloc headers need to be aligned, the sizes must also
@@ -104,18 +126,27 @@ bool IsValid(const MallocHeader *header) {
 }
 
 // Return false to stop iterating.
-using malloc_header_callback_t = bool (*)(MallocHeader *header, void *arg);
+using malloc_header_callback_t = bool (*)(MallocHeader *header, uintptr_t alloc,
+                                          size_t alloc_size, void *arg);
 
 void IterMallocHeaders(malloc_header_callback_t callback, void *arg = nullptr) {
-  uintptr_t start = gMallocStart;
-  assert(reinterpret_cast<MallocHeader *>(start)->getSize());
-  uintptr_t end = start + gAllocSize;
-  while (start < end) {
-    if (!callback(reinterpret_cast<MallocHeader *>(start), arg)) return;
-    // Note that because we dereference the ptr again here, we can edit the
-    // header in place and jump safely to the next header.
-    start += sizeof(MallocHeader) +
-             reinterpret_cast<MallocHeader *>(start)->getSize();
+  uintptr_t alloc = gFirstAlloc;
+  while (alloc) {
+    size_t alloc_size = GetAllocSize(alloc);
+    uintptr_t start = alloc + kAllocOffset;
+    assert(reinterpret_cast<MallocHeader *>(start)->getSize());
+    uintptr_t end = alloc + alloc_size;
+    while (start < end) {
+      if (!callback(reinterpret_cast<MallocHeader *>(start), alloc, alloc_size,
+                    arg))
+        return;
+      // Note that because we dereference the ptr again here, we can edit the
+      // header in place and jump safely to the next header.
+      start += sizeof(MallocHeader) +
+               reinterpret_cast<MallocHeader *>(start)->getSize();
+    }
+
+    alloc = GetNextAlloc(alloc);
   }
 }
 
@@ -124,11 +155,12 @@ void IterMallocHeaders(malloc_header_callback_t callback, void *arg = nullptr) {
 // - The current one is free and the next one is size zero.
 // - The current one and the next one are free.
 void MergeMallocHeaders() {
-  IterMallocHeaders([](MallocHeader *header, void *) {
+  IterMallocHeaders([](MallocHeader *header, uintptr_t alloc, size_t alloc_size,
+                       void *) {
     if (header->isUsed()) return true;
 
     // Attempting to look past the end of the page. Stop here.
-    uintptr_t end = gMallocStart + gAllocSize;
+    uintptr_t end = alloc + alloc_size;
     uintptr_t next = reinterpret_cast<uintptr_t>(header) +
                      sizeof(MallocHeader) + header->getSize();
     if (next >= end) return false;
@@ -254,12 +286,41 @@ MallocHeader *Partition(MallocHeader *header, const size_t desired_size,
   return new_header;
 };
 
+void SetupNewAllocation(uintptr_t alloc_start, size_t alloc_size) {
+  // Each allocation will act as a linked list that contains info on itself,
+  // the actual allocation space, and info on the next allocation.
+  //
+  // The start of each allocation will contain:
+  // - The 4-byte address of the next allocation (or zero to indicate none)
+  // - The 4-byte size of this allocation.
+  //
+  // These rules imply the actual first malloc header will be 8 bytes after
+  // the start of the allocation.
+  DEBUG_PRINT("New alloc 0x%x of size 0x%x\n", alloc_start, alloc_size);
+  assert(alloc_start);
+
+  assert(alloc_size > kAllocOffset);
+  GetNextAlloc(alloc_start) = 0;
+  GetAllocSize(alloc_start) = alloc_size;
+
+  uintptr_t last_alloc = GetLastAlloc();
+  if (last_alloc) GetNextAlloc(last_alloc) = alloc_start;
+
+  MallocHeader *head =
+      reinterpret_cast<MallocHeader *>(alloc_start + kAllocOffset);
+  head->setSize(alloc_size - sizeof(MallocHeader) - kAllocOffset);
+  head->setUsed(0);
+
+  assert(IsValid(head));
+}
+
 }  // namespace
 
 size_t GetAvailMemory() {
   size_t avail = 0;
   IterMallocHeaders(
-      [](MallocHeader *header, void *arg) {
+      [](MallocHeader *header, uintptr_t /*alloc*/, size_t /*alloc_size*/,
+         void *arg) {
         if (!header->isUsed())
           *reinterpret_cast<size_t *>(arg) += header->getSize();
         return true;
@@ -280,9 +341,6 @@ static void *MallocImpl(size_t size, size_t align) {
   size = RoundUp(size, kMinAlign);
   align = std::max(align, kMinAlign);
 
-  // Cannot possibly allocate this.
-  if (size > gAllocSize) return nullptr;
-
   // Cannot actually allocate this much since it will exceed the size limit in
   // the malloc header.
   if (!MallocHeader::SizeFits(size)) return nullptr;
@@ -297,7 +355,8 @@ static void *MallocImpl(size_t size, size_t align) {
   };
   Args args = {size, align, nullptr};
   IterMallocHeaders(
-      [](MallocHeader *header, void *arg) {
+      [](MallocHeader *header, uintptr_t /*alloc*/, size_t /*alloc_size*/,
+         void *arg) {
         if (header->isUsed()) return true;
 
         Args *args = reinterpret_cast<Args *>(arg);
@@ -327,21 +386,16 @@ static void *MallocImpl(size_t size, size_t align) {
   return reinterpret_cast<void *>(addr);
 }
 
-void *malloc(size_t size, size_t align) {
-  void *res = MallocImpl(size, align);
-  if (!res) {
-    DEBUG_PRINT("MALLOC RETURNED NULL! size: %u, align: %u\n", size, align);
-    DumpAllocs();
-  }
-
 #if MALLOC_VALIDATION
+static void ValidateMalloc(size_t size, size_t align, void *res) {
   struct ValidateParams {
     size_t size;
     size_t align;
     void *res;
   } params = {size, align, res};
   IterMallocHeaders(
-      [](MallocHeader *header, void *arg) {
+      [](MallocHeader *header, uintptr_t /*alloc*/, size_t /*alloc_size*/,
+         void *arg) {
         if (header->getSize() == 0) {
           auto *param = reinterpret_cast<ValidateParams *>(arg);
           DEBUG_PRINT(
@@ -355,7 +409,39 @@ void *malloc(size_t size, size_t align) {
         return true;
       },
       &params);
+}
 #endif
+
+void *malloc(size_t size, size_t align) {
+  void *res = MallocImpl(size, align);
+
+#if MALLOC_VALIDATION
+  ValidateMalloc(size, align, res);
+#endif
+
+  if (!res) {
+    // This is ok.
+    if (size == 0) return res;
+
+    if (size > kSizeMax) {
+      DEBUG_PRINT("Attempted to allocate an invalid size: 0x%x\n", size);
+      return res;
+    }
+
+    // Attempt to get more space by requesting more space.
+    if (gAskFunc) {
+      uintptr_t newalloc;
+      size_t newsize;
+      gAskFunc(newalloc, newsize);
+      SetupNewAllocation(newalloc, newsize);
+
+      res = MallocImpl(size, align);
+      if (res) return res;
+    }
+
+    DEBUG_PRINT("MALLOC RETURNED NULL! size: %u, align: %u\n", size, align);
+    DumpAllocs();
+  }
 
   return res;
 }
@@ -376,7 +462,8 @@ void free(void *ptr) {
   } params = {ptr, false};
 
   IterMallocHeaders(
-      [](MallocHeader *header, void *arg) {
+      [](MallocHeader *header, uintptr_t /*alloc*/, size_t /*alloc_size*/,
+         void *arg) {
         auto *params = reinterpret_cast<Params *>(arg);
         uintptr_t addr =
             reinterpret_cast<uintptr_t>(header) + sizeof(MallocHeader);
@@ -404,7 +491,8 @@ void free(void *ptr) {
     void *free_ptr;
   } validate_params = {&saved_header, ptr};
   IterMallocHeaders(
-      [](MallocHeader *header, void *arg) {
+      [](MallocHeader *header, uintptr_t /*alloc*/, size_t /*alloc_size*/,
+         void *arg) {
         if (header->getSize() == 0) {
           auto *param = reinterpret_cast<ValidateParams *>(arg);
           DEBUG_PRINT(
@@ -424,24 +512,28 @@ void free(void *ptr) {
 
 void DumpAllocs() {
   DEBUG_PRINT("Headers:\n");
-  IterMallocHeaders([](MallocHeader *header, void *) {
+  IterMallocHeaders([](MallocHeader *header, uintptr_t /*alloc*/,
+                       size_t /*alloc_size*/, void *) {
     DEBUG_PRINT("  addr: %p, size: %u, used: %d\n", header, header->getSize(),
                 header->isUsed());
     return true;
   });
 }
 
-void Initialize(uintptr_t alloc_start, size_t alloc_size) {
-  gAllocSize = alloc_size;
-  gMallocStart = alloc_start;
+void Initialize(uintptr_t alloc_start, size_t alloc_size,
+                ask_for_more_func_t ask) {
   DEBUG_PRINT("Malloc start at 0x%x\n", alloc_start);
+  gAskFunc = ask;
 
   // Setup the first malloc header.
-  MallocHeader *head = reinterpret_cast<MallocHeader *>(gMallocStart);
-  head->setSize(alloc_size - sizeof(MallocHeader));
-  head->setUsed(0);
-  assert(IsValid(head));
-  assert(GetAvailMemory() == alloc_size - sizeof(MallocHeader));
+  SetupNewAllocation(alloc_start, alloc_size);
+  // NOTE: This is set after we ask for more the very first time so we don't
+  // accidentally set itself as the next alloc.
+  gFirstAlloc = alloc_start;
+
+  // Some error checking.
+  assert(GetAvailMemory() == alloc_size - sizeof(MallocHeader) - kAllocOffset);
+  assert(GetLastAlloc() == gFirstAlloc);
 }
 
 }  // namespace malloc
