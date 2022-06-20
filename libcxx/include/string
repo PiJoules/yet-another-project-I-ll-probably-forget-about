@@ -88,7 +88,9 @@ class basic_string {
     data_[length_] = 0;
   }
 
-  basic_string(const basic_string& other, size_type pos, size_type count = npos) {
+  basic_string(const basic_string& other, size_type pos) : basic_string(other, pos, npos) {}
+
+  basic_string(const basic_string& other, size_type pos, size_type count) {
     if (pos > other.size()) __throw_out_of_range();
     length_ = std::min(other.size() - pos, count);
     data_ = new value_type[length_ + 1];
@@ -171,6 +173,11 @@ class basic_string {
   constexpr basic_string substr(size_type pos = 0,
                                 size_type count = npos) const {
     return basic_string(*this, pos, count);
+  }
+
+  constexpr bool starts_with(const basic_string &other) const {
+    if (other.size() > size()) return false;
+    return strncmp(other.c_str(), c_str(), other.size()) == 0;
   }
 
   //@{
