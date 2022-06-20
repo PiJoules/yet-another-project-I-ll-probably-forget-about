@@ -4,12 +4,8 @@
 
 namespace syscall {
 
-void DebugWrite(const char *str) {
-  asm volatile(
-      "movl %0, %%eax\n"
-      "movl %1, %%ebx\n"
-      "int $0x80" ::"r"(SYS_DebugWrite),
-      "r"((uint32_t)str));
+void DebugWrite(const char *str, size_t size) {
+  asm volatile("int $0x80" ::"a"(SYS_DebugWrite), "b"(str), "c"(size));
 }
 
 void ProcessKill(uint32_t retval) {

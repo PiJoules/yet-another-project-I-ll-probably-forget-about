@@ -45,7 +45,7 @@ namespace syscall {
 
 using handle_t = uint32_t;
 
-void DebugWrite(const char *str);
+void DebugWrite(const char *str, size_t size);
 void ProcessKill(uint32_t retval);
 kstatus_t AllocPage(uintptr_t &vaddr, handle_t proc_handle, uint32_t flags);
 size_t PageSize();

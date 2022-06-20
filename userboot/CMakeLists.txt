@@ -181,24 +181,19 @@ target_link_options(ls PRIVATE -nostdlib)
 add_to_initrd(${CMAKE_CURRENT_BINARY_DIR}/ls
               "bin/ls")
 
-# TODO: This is commented out because the kernel has reached a point where it
-# hit 4MB limit of the initial allocation we gave it for malloc. This means
-# channels cannot resize any larger when streaming vfs data. This is commented
-# out to save some space in the vfs data transfered over channels. Once malloc
-# (for the kernel) is able to dynamically resize, this can be re-added.
-#add_executable(page-fault page_fault.cpp)
-#target_include_directories(page-fault
-#  PRIVATE ${CMAKE_SOURCE_DIR}/libc/include
-#  PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
-#  PRIVATE include)
-#target_compile_options(page-fault PRIVATE ${USER_CXX_FLAGS})
-#target_link_libraries(page-fault
-#  PRIVATE user_libc
-#  PRIVATE user_libcxx)
-#target_link_options(page-fault PRIVATE -nostdlib)
-#
-#add_to_initrd(${CMAKE_CURRENT_BINARY_DIR}/page-fault
-#              "bin/page-fault")
+add_executable(page-fault page_fault.cpp)
+target_include_directories(page-fault
+  PRIVATE ${CMAKE_SOURCE_DIR}/libc/include
+  PRIVATE ${CMAKE_SOURCE_DIR}/libcxx/include/
+  PRIVATE include)
+target_compile_options(page-fault PRIVATE ${USER_CXX_FLAGS})
+target_link_libraries(page-fault
+  PRIVATE user_libc
+  PRIVATE user_libcxx)
+target_link_options(page-fault PRIVATE -nostdlib)
+
+add_to_initrd(${CMAKE_CURRENT_BINARY_DIR}/page-fault
+              "bin/page-fault")
 
 add_executable(printenv printenv.cpp)
 target_include_directories(printenv

@@ -134,7 +134,8 @@ void IterMallocHeaders(malloc_header_callback_t callback, void *arg = nullptr) {
   while (alloc) {
     size_t alloc_size = GetAllocSize(alloc);
     uintptr_t start = alloc + kAllocOffset;
-    assert(reinterpret_cast<MallocHeader *>(start)->getSize());
+    assert(reinterpret_cast<MallocHeader *>(start)->getSize() &&
+           "The very first malloc header in this allocation has zero size");
     uintptr_t end = alloc + alloc_size;
     while (start < end) {
       if (!callback(reinterpret_cast<MallocHeader *>(start), alloc, alloc_size,

@@ -64,6 +64,11 @@ class PageDirectory4M {
   // directory. This just performs a normal memcpy.
   void Memcpy(uintptr_t dst, uintptr_t src, size_t size);
 
+  // Copy data from the address `src` in another page directory `other_pd`
+  // into the address `dst` in this directory.
+  void Memcpy(PageDirectory4M &other_pd, void *dst, const void *src,
+              size_t size);
+
   // Get the physical address a virtual address is mapped to.
   uintptr_t getPhysicalAddr(uintptr_t vaddr) const;
 
@@ -76,7 +81,11 @@ class PageDirectory4M {
 
   void DumpMappedPages() const;
 
+  PageDirectory4M() = default;
+
  private:
+  PageDirectory4M(const PageDirectory4M &) = default;
+
   uint32_t &getPDE(uint32_t vaddr);
   const uint32_t &getPDE(uint32_t vaddr) const;
 

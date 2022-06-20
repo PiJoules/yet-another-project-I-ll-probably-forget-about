@@ -78,11 +78,8 @@ void PageFaultHandler(isr::registers_t *regs) {
   }
 
   regs->Dump();
-
-  PageDirectory4M &pd = scheduler::GetCurrentTask().getPageDir();
-  pd.DumpMappedPages();
-
-  abort();
+  paging::GetCurrentPageDirectory().DumpMappedPages();
+  stacktrace::PrintStackTrace();
 }
 
 void PageDirectory4M::DumpMappedPages() const {
@@ -225,6 +222,9 @@ int32_t PageDirectory4M::getNextFreePage(uint32_t lower_bound) const {
 }
 
 PageDirectory4M *PageDirectory4M::Clone() const {
+  // TODO: For user page directories, it shouldn't be necessary for us to copy
+  // all kernel pages. Only the starting page holding the whole kernel should
+  // do.
   auto *pd = new PageDirectory4M(*this);
   assert(pd);
   return pd;
@@ -236,31 +236,79 @@ uintptr_t PageDirectory4M::getPhysicalAddr(uintptr_t vaddr) const {
   return pd_entry & kPageMask4M;
 }
 
-void PageDirectory4M::Memcpy(uintptr_t dst, uintptr_t src, size_t size) {
-  if (this == &GetCurrentPageDirectory()) {
-    memcpy(reinterpret_cast<void *>(dst), reinterpret_cast<void *>(src), size);
+// Create an anonymous virtual page mapping to the physical page in another
+// page directory mapped with the virtual address `vaddr` in that PD. Return
+// an address in this page directory that is mapped to the same physical
+// memory mapped to the `vaddr` in `other_pd`.
+static uintptr_t TempMap(PageDirectory4M &other_pd, uintptr_t vaddr) {
+  auto &current_pd = paging::GetCurrentPageDirectory();
+  assert(&other_pd != &current_pd);
+  uintptr_t page_vaddr = pmm::PageAddress(vaddr);
+  size_t vaddr_offset = vaddr - page_vaddr;
+  assert(other_pd.VaddrIsMapped(page_vaddr));
+  uintptr_t paddr = other_pd.getPhysicalAddr(page_vaddr);
+
+  int32_t free_vpage = current_pd.getNextFreePage();
+  assert(free_vpage >= 0 && "No free virtual pages");
+  uintptr_t new_page_vaddr = pmm::PageToAddr(static_cast<uint32_t>(free_vpage));
+  current_pd.MapPage(new_page_vaddr, paddr, /*flags=*/0);
+  return new_page_vaddr + vaddr_offset;
+}
+
+static void Memcpy(PageDirectory4M &src_pd, PageDirectory4M &dst_pd,
+                   const void *src, void *dst, size_t size) {
+  auto &current_pd = paging::GetCurrentPageDirectory();
+  if (&src_pd == &dst_pd && &current_pd == &src_pd) {
+    // Both page directories are the current page directory. We can just do a
+    // normal memcpy.
+    memcpy(dst, src, size);
     return;
   }
 
-  // We are copying something from the current page directoy into another
-  // page directory. We can do this by
-  // 1) Getting the physical page corresponding to the virtual page where we
-  //    want to copy to in the other (this) page directory.
-  // 2) Finding a free virtual page in the current page directory and mapping
-  //    that free vpage to the ppage from (1).
-  // 3) Doing a memcpy from the `src` in the current page directory to the
-  //    newly mapped vpage from (2).
-  uintptr_t dst_paddr = getPhysicalAddr(pmm::PageAddress(dst));
-  int32_t free_vpage = GetCurrentPageDirectory().getNextFreePage();
-  assert(free_vpage >= 0);
-  uintptr_t dst_page_vaddr = pmm::PageToAddr(static_cast<uint32_t>(free_vpage));
-  GetCurrentPageDirectory().MapPage(dst_page_vaddr, dst_paddr, /*flags=*/0);
-  size_t dst_offset = dst - pmm::PageAddress(dst);
-  memcpy(reinterpret_cast<void *>(dst_page_vaddr + dst_offset),
-         reinterpret_cast<void *>(src), size);
+  // We are copying from one page directory into another. If neither of them
+  // are the current page directory, then we need to virtual map one page from
+  // each PD into the current one, then do a memcpy between those pages. If
+  // at least one of them is the current page dir, then we'll only need to
+  // allocate one page.
+  const void *this_pd_src;
+  if (&src_pd == &current_pd) {
+    this_pd_src = src;
+  } else {
+    this_pd_src = reinterpret_cast<const void *>(
+        TempMap(src_pd, reinterpret_cast<uintptr_t>(src)));
+  }
 
-  // Finally unmap the temporary page.
-  GetCurrentPageDirectory().UnmapPage(dst_page_vaddr);
+  void *this_pd_dst;
+  if (&dst_pd == &current_pd) {
+    this_pd_dst = dst;
+  } else {
+    this_pd_dst = reinterpret_cast<void *>(
+        TempMap(dst_pd, reinterpret_cast<uintptr_t>(dst)));
+  }
+
+  // Do the memcpy in the current address space.
+  memcpy(this_pd_dst, this_pd_src, size);
+
+  // Free any temporarily-mapped pages.
+  if (&src_pd != &current_pd) {
+    current_pd.UnmapPage(
+        pmm::PageAddress(reinterpret_cast<uintptr_t>(this_pd_src)));
+  }
+  if (&dst_pd != &current_pd) {
+    current_pd.UnmapPage(
+        pmm::PageAddress(reinterpret_cast<uintptr_t>(this_pd_dst)));
+  }
+}
+
+void PageDirectory4M::Memcpy(uintptr_t dst, uintptr_t src, size_t size) {
+  ::paging::Memcpy(GetCurrentPageDirectory(), *this,
+                   reinterpret_cast<const void *>(src),
+                   reinterpret_cast<void *>(dst), size);
+}
+
+void PageDirectory4M::Memcpy(PageDirectory4M &other_pd, void *dst,
+                             const void *src, size_t size) {
+  ::paging::Memcpy(other_pd, *this, src, dst, size);
 }
 
 }  // namespace paging

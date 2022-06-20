@@ -1,9 +1,11 @@
 #include <kernel/channel.h>
+#include <kernel/exceptions.h>
 #include <kernel/isr.h>
 #include <kernel/scheduler.h>
 #include <kernel/serial.h>
 #include <kernel/status.h>
 #include <kernel/syscalls.h>
+#include <libc/resizable_buffer.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -26,10 +28,23 @@ namespace syscalls {
 
 namespace {
 
-// Print a C-style string at the address specified by EBX.
+using ::exceptions::GetPageDirBeforeException;
+using ::paging::PageDirectory4M;
+
+// Print a C-style string at the address specified. This accepts arguments via
+// the following registers:
+//
+//   EBX - The virtual address to read from.
+//   ECX - The number of characters to read.
+//
 void SYS_DebugWrite(isr::registers_t *regs) {
   const char *str = reinterpret_cast<const char *>(regs->ebx);
-  printf("%s", str);
+  size_t size = regs->ecx;
+  ResizableBuffer buffer(size + 1);
+  paging::GetCurrentPageDirectory().Memcpy(GetPageDirBeforeException(),
+                                           buffer.getData(), str, size);
+  buffer.get<char>(size) = 0;
+  printf("%s", reinterpret_cast<char *>(buffer.getData()));
 }
 
 // Try to read a character from serial. This accepts arguments via the
@@ -43,7 +58,12 @@ void SYS_DebugWrite(isr::registers_t *regs) {
 //
 void SYS_DebugRead(isr::registers_t *regs) {
   char *dst = reinterpret_cast<char *>(regs->ebx);
-  bool success = serial::TryRead(*dst);
+
+  char c;
+  bool success = serial::TryRead(c);
+  GetPageDirBeforeException().Memcpy(paging::GetCurrentPageDirectory(), dst, &c,
+                                     sizeof(c));
+
   regs->eax = success ? K_OK : K_UNABLE_TO_READ;
 }
 
@@ -141,7 +161,7 @@ void SYS_PageSize(isr::registers_t *regs) { regs->eax = pmm::kPageSize4M; }
 //         is K_OK.
 //
 void SYS_ProcessCreate(isr::registers_t *regs) {
-  paging::PageDirectory4M *user_pd = paging::GetKernelPageDirectory().Clone();
+  PageDirectory4M *user_pd = paging::GetKernelPageDirectory().Clone();
   auto *init_user_task = new scheduler::Task(/*user=*/true, *user_pd,
                                              &scheduler::GetCurrentTask());
 
@@ -216,7 +236,7 @@ void SYS_MapPage(isr::registers_t *regs) {
 
   // Exactly one of these must have a physical page backing it up.
   uintptr_t paddr, vaddr_to_map;
-  paging::PageDirectory4M *dir_to_map;
+  PageDirectory4M *dir_to_map;
   scheduler::Task *current_owner, *new_owner;
   if (pd1.VaddrIsMapped(vaddr1) && !pd2.VaddrIsMapped(vaddr2)) {
     paddr = pd1.getPhysicalAddr(vaddr1);
@@ -295,7 +315,8 @@ void SYS_ProcessStart(isr::registers_t *regs) {
 kstatus_t TryCopy(const void *src, size_t src_size, void *buff,
                   size_t buff_size) {
   if (buff_size < src_size) { return K_BUFFER_TOO_SMALL; }
-  memcpy(buff, src, src_size);
+  GetPageDirBeforeException().Memcpy(paging::GetCurrentPageDirectory(), buff,
+                                     src, src_size);
   return K_OK;
 }
 
@@ -472,13 +493,22 @@ void SYS_ChannelRead(isr::registers_t *regs) {
   void *dst = reinterpret_cast<void *>(regs->ecx);
   size_t size = regs->edx;
   size_t bytes_available;
-  bool success = endpoint->Read(dst, size, &bytes_available);
-  if (success) {
-    regs->eax = K_OK;
-  } else {
+
+  // Copy into this local buffer first.
+  ResizableBuffer buffer(size);
+
+  bool success = endpoint->Read(buffer.getData(), size, &bytes_available);
+  if (!success) {
     regs->eax = K_BUFFER_TOO_SMALL;
     regs->ebx = bytes_available;
+    return;
   }
+
+  // Then copy from the buffer to the original page directory.
+  GetPageDirBeforeException().Memcpy(paging::GetCurrentPageDirectory(), dst,
+                                     buffer.getData(), size);
+
+  regs->eax = K_OK;
 }
 
 // Write to a channel.
@@ -493,7 +523,13 @@ void SYS_ChannelWrite(isr::registers_t *regs) {
   auto *endpoint = reinterpret_cast<channel::Endpoint *>(regs->ebx);
   void *src = reinterpret_cast<void *>(regs->ecx);
   size_t size = regs->edx;
-  endpoint->Write(src, size);
+
+  // First copy locally.
+  ResizableBuffer buffer(size);
+  paging::GetCurrentPageDirectory().Memcpy(GetPageDirBeforeException(),
+                                           buffer.getData(), src, size);
+
+  endpoint->Write(buffer.getData(), size);
 }
 
 // Transfer ownership of a handle to another process.

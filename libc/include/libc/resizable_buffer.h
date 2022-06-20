@@ -53,6 +53,10 @@ class ResizableBuffer {
   }
 
   void *getData() const { return data_; }
+  template <typename T>
+  T &get(size_t i = 0) const {
+    return reinterpret_cast<T *>(data_)[i];
+  }
 
   // Write `size` to the buffer, then `size` bytes of data.
   void WriteLenAndData(const void *src, size_t size) {

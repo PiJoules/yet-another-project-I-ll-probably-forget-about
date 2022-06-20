@@ -212,10 +212,7 @@ extern "C" int printf(const char *s, ...) {
 
   // TODO: Maybe should have something along the lines of formatting the string
   // into a buffer then do a debug write.
-  auto put = [](char c) {
-    const char s[] = {c, 0};
-    syscall::DebugWrite(s);
-  };
+  auto put = [](char c) { syscall::DebugWrite(&c, 1); };
   Format(put, s, va);
   va_end(va);
 
@@ -224,10 +221,7 @@ extern "C" int printf(const char *s, ...) {
 }
 
 extern "C" int putchar(int ch) {
-  auto put = [](char c) {
-    const char s[] = {c, 0};
-    syscall::DebugWrite(s);
-  };
+  auto put = [](char c) { syscall::DebugWrite(&c, 1); };
   put(static_cast<char>(ch));
   return ch;
 }

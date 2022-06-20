@@ -7,7 +7,7 @@
 #include <type_traits>
 
 // Define this in assembly because infinite loops are UB in C++.
-#define LOOP_INDEFINITELY() asm volatile("cli\n 1: jmp 1b");
+#define LOOP_INDEFINITELY() asm volatile("cli\n 1: jmp 1b")
 
 #define __PRINTF_LIKE__ __attribute__((format(printf, 1, 2)))
 
